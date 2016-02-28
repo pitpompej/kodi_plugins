@@ -1,2 +1,2 @@
 # kodi_plugins
-kodi plugins a source and zip-archives
+This repository contains sources and corresponding ready-to-install zip-archives for kodi-mediacenter
