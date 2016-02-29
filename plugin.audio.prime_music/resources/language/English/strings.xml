@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <string id="30001">Next Page</string>
+  <string id="30002">Albums</string>
+  <string id="30003">Playlists</string>
+  <string id="30004">Genres</string>
+  <string id="30005">New albums</string>
+  <string id="30015">Search</string>
+  <string id="30016">Search albums</string>
+  <string id="30017">Search songs</string>
+  <string id="30020">Alternative and Indie </string>
+  <string id="30021">Blues</string>
+  <string id="30022">Classic Rock</string>
+  <string id="30023">Country</string>
+  <string id="30024">Dance and Electronic</string>
+  <string id="30025">Easy Listening</string>
+  <string id="30026">Folk</string>
+  <string id="30027">Hardrock and Metal</string>
+  <string id="30028">Hip-Hop and Rap</string>
+  <string id="30029">Jazz</string>
+  <string id="30030">Kids Music and Audiogames</string>
+  <string id="30031">Classic</string>
+  <string id="30032">Latin</string>
+  <string id="30033">New Age and Meditation</string>
+  <string id="30034">Pop</string>
+  <string id="30035">Soul</string>
+  <string id="30036">Reggae</string>
+  <string id="30037">Rock</string>
+  <string id="30038">German Schlager and Folk Music</string>
+  <string id="30039">Soundtracks</string>
+  <string id="30040">International</string>
+  <string id="30081">Please select the site version (US/UK/DE)...</string>
+  <string id="30082">You are not logged in or used an Amazon account that does not have Prime priviliges</string>
+  <string id="30090">Amazon Prime Music - Enter your Email:</string>
+  <string id="30091">Amazon Prime Music - Enter your Password:</string>
+  <string id="30101">Email</string>
+  <string id="30102">Password</string>
+  <string id="30103">Website Version</string>
+  <string id="30115">Delete cookies</string>
+  <string id="30116">Delete cache</string>
+  <string id="30201">General</string>
+  <string id="30203">Advanced</string>
+</strings>

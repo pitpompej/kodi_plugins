@@ -1,0 +1,9 @@
+<settings>
+    <category label="30201">
+        <setting id="siteVersion" type="enum" label="30103" values="US|UK|DE" default="2"/>
+    </category>
+    <category label="30203">
+        <setting label="30116" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCache)"/>
+        <setting label="30115" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCookies)"/>
+    </category>
+</settings>
