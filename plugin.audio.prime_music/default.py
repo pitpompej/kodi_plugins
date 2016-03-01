@@ -227,6 +227,8 @@ def listSongs(url):
         album_title = album_title_match[0]
     for i in range(1, len(spl), 1):
         entry = spl[i]
+        if not 'CheckPrime"></i>' in entry:
+            continue
         match = re.compile('data-asin="(.+?)"', re.DOTALL).findall(entry)
         if match :
             trackID = match[0]
