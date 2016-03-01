@@ -1,2 +1,4 @@
+0.1.2
+- Bugfix: Fixed title-listing when album containes non-prime titles, too
 0.1.1
-    -initial release
+- Initial release
