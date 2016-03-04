@@ -61,6 +61,8 @@ urlMainS = "https://www.amazon."+siteVersion
 urlMain = urlMainS
 addon.setSetting('email', '')
 addon.setSetting('password', '')
+quality = addon.getSetting("quality")
+audioQuality = ["HIGH", "MEDIUM", "LOW"][int(quality)]
 
 cookieFile = os.path.join(addonUserDataFolder, siteVersion + ".cookies")
 
@@ -93,9 +95,6 @@ def listAlbums(url):
     content = content.replace("\\","")
     if 'id="catCorResults"' in content:
         content = content[:content.find('id="catCorResults"')]
-    match = re.compile('csrf":"(.+?)"', re.DOTALL).findall(content)
-    if match:
-        addon.setSetting('csrfToken', match[0])
     
     args = urlparse.parse_qs(url[1:])
     page = args.get('page', None)
@@ -145,9 +144,6 @@ def listPlaylists(url):
     raw_content = raw_content.replace("\\","")
     if 'id="catCorResults"' in raw_content:
         raw_content = raw_content[:raw_content.find('id="catCorResults"')]
-    match = re.compile('csrf":"(.+?)"', re.DOTALL).findall(raw_content)
-    if match:
-        addon.setSetting('csrfToken', match[0])
 
     args = urlparse.parse_qs(url[1:])
     page = args.get('page', None)
@@ -198,9 +194,6 @@ def listSongs(url):
     content = content.replace("\\","")
     if 'id="catCorResults"' in content:
         content = content[:content.find('id="catCorResults"')]
-    match = re.compile('csrf":"(.+?)"', re.DOTALL).findall(content)
-    if match:
-        addon.setSetting('csrfToken', match[0])
 
     args = urlparse.parse_qs(url[1:])
     page = args.get('page', None)
@@ -243,7 +236,6 @@ def listSongs(url):
             customer_id = ""
             if customer_match:
                 customer_id = customer_match[0]
-            requestUrl = "https://www.amazon.de/gp/dmusic/tracklistPlayer/utility/dmls-get-streaming-urls.html?asinList="+trackID + "&customerId=" + customer_id + "&deviceTypeId=A20X0GIASH11T2"
             album_track_nr = ""
             album_track_nr_match = re.compile('TrackNumber">(.+?)<', re.DOTALL).findall(entry)
             if run_per_song_check == True:
@@ -255,7 +247,7 @@ def listSongs(url):
                     album_title = album_title_match[0]
             if album_track_nr_match:
                 album_track_nr = album_track_nr_match[0]
-            addLink(title, requestUrl, "playTrack", thumbUrl, "", album_track_nr, artist, album_title, year)
+            addLink(title, "playTrack", trackID, thumbUrl, "", album_track_nr, artist, album_title, year)
     xbmcplugin.endOfDirectory(pluginhandle)
     xbmc.sleep(100)
 
@@ -266,9 +258,6 @@ def listSearchedSongs(url):
     content = content.replace("\\","")
     if 'id="catCorResults"' in content:
         content = content[:content.find('id="catCorResults"')]
-    match = re.compile('csrf":"(.+?)"', re.DOTALL).findall(content)
-    if match:
-        addon.setSetting('csrfToken', match[0])
 
     args = urlparse.parse_qs(url[1:])
     page = args.get('page', None)
@@ -292,14 +281,13 @@ def listSearchedSongs(url):
             customer_id = ""
             if customer_match:
                 customer_id = customer_match[0]
-            requestUrl = "https://www.amazon.de/gp/dmusic/tracklistPlayer/utility/dmls-get-streaming-urls.html?asinList="+trackID + "&customerId=" + customer_id + "&deviceTypeId=A20X0GIASH11T2"
             artist_match = re.compile('artist-redirect.+?">(.+?)<', re.DOTALL).findall(entry)
             if artist_match:
                 artist = artist_match[0]
             album_title_match = re.compile('album-redirect.+?">(.+?)<', re.DOTALL).findall(entry)
             if album_title_match:
                 album_title = album_title_match[0]
-            addLink(artist+": "+title, requestUrl, "playTrack", "", "", "", artist, album_title, year)
+            addLink(artist+": "+title, "playTrack", trackID, "", "", "", artist, album_title, year)
     match_nextpage = re.compile('ass="pagnNext".*?href="(.+?)">', re.DOTALL).findall(content)
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listSearchedSongs", "")
@@ -308,8 +296,8 @@ def listSearchedSongs(url):
 
 
 
-def playTrack(url):
-    content = getUnicodePage(url)
+def playTrack(asin):
+    content = postUnicodePage('https://www.amazon.de/dmls/', asin)
     matchTrack=re.compile('"urlList":\["(.+?)"').findall(content)
     trackUrl = ""
     if matchTrack:
@@ -365,6 +353,32 @@ def getUnicodePage(url):
         content = unicode(req.read(), "utf-8")
     return content
 
+
+def postUnicodePage(url, asin):
+    print url
+    post_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+    headers = { 'User-agent': userAgent,
+                'Content-Encoding': 'amz-1.0',
+                'Content-Type': 'application/json',
+                'X-Amz-Target': 'com.amazon.digitalmusiclocator.DigitalMusicLocatorServiceExternal.getRestrictedStreamingURL',
+                'csrf-token': addon.getSetting('csrf_Token'),
+                'csrf-rnd': addon.getSetting('csrf_rndToken'),
+                'csrf-ts': addon.getSetting('csrf_tsToken')
+                }
+    data = '{"customerId":"' + addon.getSetting('customerID') + '","deviceToken":{"deviceTypeId":"A16ZV8BU3SN1N3","deviceId":"' + addon.getSetting('req_dev_id') + '"},"appMetadata":{"https":"true"},"clientMetadata":{"clientId":"WebCP"},"contentId":{"identifier":"' + asin + '","identifierType":"ASIN"},"bitRate":"' + audioQuality + '"}'
+    coded_req = urllib2.Request(url, data, headers)
+    content = ""
+    try:
+        req = post_opener.open(coded_req)
+        if "content-type" in req.headers and "charset=" in req.headers['content-type']:
+            encoding=req.headers['content-type'].split('charset=')[-1]
+            content = unicode(req.read(), encoding)
+        else:
+            content = unicode(req.read(), "utf-8")
+    except urllib2.HTTPError as e:
+        log(unicode(e.read(), "utf-8"))
+    return content
+
 def getAsciiPage(url):
     req = opener.open(url)
     content = req.read()
@@ -403,14 +417,13 @@ def login(content = None, statusOnly = False):
     if content is None:
         content = getUnicodePage(urlMainS)
     signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
-    if '","isPrime":1' in content: # 
+    if '","isPrime":1' in content: #
         return "prime"
     elif signoutmatch[0].strip() != "null":
         return "noprime"
     else:
         if statusOnly:
             return "none"
-
         deleteCookies()
         content = ""
         keyboard = xbmc.Keyboard('', translation(30090))
@@ -426,22 +439,43 @@ def login(content = None, statusOnly = False):
                 br.set_cookiejar(cj)
                 br.set_handle_robots(False)
                 br.addheaders = [('User-agent', userAgent)]
-                content = br.open(urlMainS+"/gp/sign-in.html")
+                content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
                 br.select_form(name="signIn")
-                br["email"] = email
+                br["email"] = email 
                 br["password"] = password
-                content = br.submit().read()
-                cj.save(cookieFile)
-                cj.load(cookieFile)
+                br.submit()
+                resp = br.response().read()
+                content = unicode(resp, "utf-8")
+                content = content.replace("\\","")
+                match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(content)
+                if match:
+                    addon.setSetting('csrf_tsToken', match[0])
+                    log(match[0])
+                match = re.compile('"csrf_rnd":"(.+?)"', re.DOTALL).findall(content)
+                if match:
+                    addon.setSetting('csrf_rndToken', match[0])
+                    log(match[0])
+                match = re.compile('"csrf_token":"(.+?)"', re.DOTALL).findall(content)
+                if match:
+                    addon.setSetting('csrf_Token', match[0])
+                    log(match[0])
+                cj.save(cookieFile, ignore_discard=True, ignore_expires=True)
+                for cookie in cj:
+                    if cookie.name == "ubid-acbde":
+                        dev_id = cookie.value.replace("-", "")
+                        addon.setSetting('req_dev_id', dev_id)
                 content = getUnicodePage(urlMainS)
+                customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(content)
+                if customer_match:
+                    addon.setSetting('customerID', customer_match[0])
+                    log(customer_match[0])
         signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
-        if '","isPrime":1' in content: # 
+        if '","isPrime":1' in content: #
             return "prime"
         elif signoutmatch[0].strip() != "null":
             return "noprime"
         else:
             return "none"
-
 
 def cleanInput(str):
     if type(str) is not unicode:
@@ -499,10 +533,10 @@ def addDir(name, url, mode, iconimage):
     return ok
 
 
-def addLink(name, url, mode, iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating=""):
+def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating=""):
 #    filename = (''.join(c for c in url if c not in '/\\:?"*|<>')).strip()+".jpg"
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&name="+urllib.quote_plus(name.encode("utf8"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
+    u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("utf8"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name, "duration": duration, "year": year, "genre": genre, "rating": rating, "tracknumber": trackNr, "artist": artist, "album": album_title })
@@ -515,6 +549,7 @@ def addLink(name, url, mode, iconimage, duration, trackNr="", artist="", album_t
 params = parameters_string_to_dict(sys.argv[2])
 mode = urllib.unquote_plus(params.get('mode', ''))
 url = urllib.unquote_plus(params.get('url', ''))
+asin = urllib.unquote_plus(params.get('asin', ''))
 thumb = urllib.unquote_plus(params.get('thumb', ''))
 name = urllib.unquote_plus(params.get('name', ''))
 videoType = urllib.unquote_plus(params.get('videoType', ''))
@@ -555,7 +590,7 @@ elif mode == 'listSearchedSongs':
 elif mode == 'listGenres':
     listGenres()
 elif mode == 'playTrack':
-    playTrack(url)
+    playTrack(asin)
 elif mode == 'search':
     search(url)
 elif mode == 'login':
