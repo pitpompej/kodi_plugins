@@ -303,7 +303,9 @@ def playTrack(asin):
     if matchTrack:
         trackUrl = matchTrack[0]
     play_item = xbmcgui.ListItem(path=trackUrl)
+    play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
+    xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(trackUrl, play_item)
 
 
 def listGenres():
@@ -536,7 +538,7 @@ def addDir(name, url, mode, iconimage):
 def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating=""):
 #    filename = (''.join(c for c in url if c not in '/\\:?"*|<>')).strip()+".jpg"
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
-    u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("utf8"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
+    u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("latin"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("latin"))+"&album="+urllib.quote_plus(album_title.encode("latin"))
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name, "duration": duration, "year": year, "genre": genre, "rating": rating, "tracknumber": trackNr, "artist": artist, "album": album_title })
@@ -552,6 +554,8 @@ url = urllib.unquote_plus(params.get('url', ''))
 asin = urllib.unquote_plus(params.get('asin', ''))
 thumb = urllib.unquote_plus(params.get('thumb', ''))
 name = urllib.unquote_plus(params.get('name', ''))
+g_artist = urllib.unquote_plus(params.get('artist', ''))
+g_album = urllib.unquote_plus(params.get('album', ''))
 videoType = urllib.unquote_plus(params.get('videoType', ''))
 
 if not os.path.isdir(addonUserDataFolder):
