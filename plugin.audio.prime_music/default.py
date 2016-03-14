@@ -46,7 +46,7 @@ cacheFolder = os.path.join(addonUserDataFolder, "cache")
 cacheFolderCoversTMDB = os.path.join(cacheFolder, "covers")
 cacheFolderFanartTMDB = os.path.join(cacheFolder, "fanart")
 addonFolderResources = os.path.join(addonFolder, "resources")
-defaultFanart = os.path.join(addonFolderResources, "fanart.png")
+defaultFanart = os.path.join(addonFolderResources, "fanart.jpg")
 libraryFolder = os.path.join(addonUserDataFolder, "library")
 libraryFolderMovies = os.path.join(libraryFolder, "Movies")
 libraryFolderTV = os.path.join(libraryFolder, "TV")
@@ -63,6 +63,7 @@ addon.setSetting('email', '')
 addon.setSetting('password', '')
 quality = addon.getSetting("quality")
 audioQuality = ["HIGH", "MEDIUM", "LOW"][int(quality)]
+forceDVDPlayer = addon.getSetting("forceDVDPlayer") == "true"
 
 cookieFile = os.path.join(addonUserDataFolder, siteVersion + ".cookies")
 
@@ -303,9 +304,11 @@ def playTrack(asin):
     if matchTrack:
         trackUrl = matchTrack[0]
     play_item = xbmcgui.ListItem(path=trackUrl)
-    play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
+    if forceDVDPlayer:
+        play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
-    xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(trackUrl, play_item)
+    if forceDVDPlayer:
+        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(trackUrl, play_item)
 
 
 def listGenres():
