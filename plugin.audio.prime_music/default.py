@@ -219,6 +219,20 @@ def listSongs(url):
     album_title_match = re.compile('<h1 class="a-size-large a-spacing-micro">(.+?)</h1>', re.DOTALL).findall(content)
     if album_title_match:
         album_title = album_title_match[0]
+    album_songs = getSongList(content, run_per_song_check)
+    if run_per_song_check == True:
+        for song in album_songs:
+            addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], song["artist"], song["album_title"], song["year"])
+    else:
+        for song in album_songs:
+            addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], artist, album_title, song["year"])
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
+
+
+def getSongList(content, with_album_and_artist=False):
+    songs = []
+    spl = content.split('id="dmusic_tracklist_player_row_')
     for i in range(1, len(spl), 1):
         entry = spl[i]
         if not 'CheckPrime"></i>' in entry:
@@ -232,25 +246,22 @@ def listSongs(url):
                 title = match1[0]
             title = cleanInput(title)
             year = ""
-            thumbUrl = album_thumb_url
-            customer_match = re.compile('data-customerid="(.+?)"', re.DOTALL).findall(entry)
-            customer_id = ""
-            if customer_match:
-                customer_id = customer_match[0]
-            album_track_nr = ""
-            album_track_nr_match = re.compile('TrackNumber">(.+?)<', re.DOTALL).findall(entry)
-            if run_per_song_check == True:
+            artist=""
+            album_title=""
+            if with_album_and_artist == True:
                 artist_match = re.compile('ArtistLink" href.+?">(.+?)<', re.DOTALL).findall(entry)
                 if artist_match:
                     artist = artist_match[0]
                 album_title_match = re.compile('a-size-mini" href=.+?">(.+?)<', re.DOTALL).findall(entry)
                 if album_title_match:
                     album_title = album_title_match[0]
+            album_track_nr = ""
+            album_track_nr_match = re.compile('TrackNumber">(.+?)<', re.DOTALL).findall(entry)
             if album_track_nr_match:
                 album_track_nr = album_track_nr_match[0]
-            addLink(title, "playTrack", trackID, thumbUrl, "", album_track_nr, artist, album_title, year)
-    xbmcplugin.endOfDirectory(pluginhandle)
-    xbmc.sleep(100)
+            song = { 'trackID' : trackID , 'title' : title, 'year' : year, 'track_nr' : album_track_nr , 'artist' : artist, 'album_title' : album_title }
+            songs.append(song)
+    return songs
 
 
 def listSearchedSongs(url):
@@ -528,12 +539,14 @@ def parameters_string_to_dict(parameters):
     return paramDict
 
 
-def addDir(name, url, mode, iconimage):
+def addDir(name, url, mode, iconimage, context_entries=[]):
     u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name})
     liz.setProperty("fanart_image", defaultFanart)
+    if len(context_entries) > 0:
+        liz.addContextMenuItems(context_entries)
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
 
