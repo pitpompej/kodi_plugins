@@ -547,7 +547,7 @@ def parameters_string_to_dict(parameters):
 def addDir(name, url, mode, iconimage, context_entries=[]):
     u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
     ok = True
-    liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
+    liz = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name})
     liz.setProperty("fanart_image", defaultFanart)
     if len(context_entries) > 0:
