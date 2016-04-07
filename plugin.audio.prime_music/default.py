@@ -370,7 +370,7 @@ def getUnicodePage(url):
     return content
 
 
-def postUnicodePage(url, asin):
+def postUnicodePage(url, asin, isRetry = False):
     print url
     post_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
     headers = { 'User-agent': userAgent,
@@ -393,6 +393,11 @@ def postUnicodePage(url, asin):
             content = unicode(req.read(), "utf-8")
     except urllib2.HTTPError as e:
         log(unicode(e.read(), "utf-8"))
+        deleteCookies()
+        login("dummy")
+        if not isRetry:
+            return postUnicodePage(url, asin, True)
+
     return content
 
 def getAsciiPage(url):
@@ -435,7 +440,7 @@ def login(content = None, statusOnly = False):
     signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
     if '","isPrime":1' in content: #
         return "prime"
-    elif signoutmatch[0].strip() != "null":
+    elif signoutmatch and signoutmatch[0].strip() != "null":
         return "noprime"
     else:
         if statusOnly:
