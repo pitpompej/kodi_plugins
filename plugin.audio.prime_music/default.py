@@ -458,12 +458,14 @@ def login(content = None, statusOnly = False):
                 password = unicode(keyboard.getText(), "utf-8")
                 br = mechanize.Browser()
                 br.set_cookiejar(cj)
+                br.set_handle_gzip(True)
                 br.set_handle_robots(False)
                 br.addheaders = [('User-agent', userAgent)]
                 content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
                 br.select_form(name="signIn")
                 br["email"] = email 
                 br["password"] = password
+                br.addheaders = [('Accept-Encoding', 'gzip, deflate')]
                 br.submit()
                 resp = br.response().read()
                 content = unicode(resp, "utf-8")
