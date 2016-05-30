@@ -281,6 +281,7 @@ def listSearchedSongs(url):
             content = content[content.find('breadcrumb.breadcrumbSearch'):]
 
     spl = content.split('class="songTitle s-music-track-title"')
+    addDir(translation(30006), "", 'index', "")
     for i in range(1, len(spl), 1):
         entry = spl[i]
         match = re.compile('asin="(.+?)"', re.DOTALL).findall(entry)
