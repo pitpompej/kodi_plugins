@@ -5,6 +5,7 @@
   <string id="30003">Playlisten</string>
   <string id="30004">Genre</string>
   <string id="30005">Neue Alben</string>
+  <string id="30006">Zurück zum Hauptmenü</string>
   <string id="30015">Suche</string>
   <string id="30016">Suche Alben</string>
   <string id="30017">Suche Songs</string>
@@ -31,6 +32,7 @@
   <string id="30040">Weltmusik</string>
   <string id="30081">Bitte die Seitenversion (US/UK/DE) wählen...</string>
   <string id="30082">Du bist nicht eingeloggt oder hast keinen Amazon Prime Account zum einloggen verwendet</string>
+  <string id="30083">Captcha Abfrage, bitte IP ändern oder später erneut versuchen</string>
   <string id="30090">Amazon Prime Music - Email eingeben:</string>
   <string id="30091">Amazon Prime Music - Password eingeben:</string>
   <string id="30101">Email</string>

@@ -67,10 +67,10 @@ forceDVDPlayer = addon.getSetting("forceDVDPlayer") == "true"
 
 cookieFile = os.path.join(addonUserDataFolder, siteVersion + ".cookies")
 
-NODEBUG = False #True
+NODEBUG = False 
 
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0"
+userAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2566.0 Safari/537.36"
 opener.addheaders = [('User-agent', userAgent)]
 
 
@@ -85,6 +85,8 @@ def index():
         addDir(translation(30016), "albums", 'search', "")
         addDir(translation(30017), "songs", 'search', "")
         xbmcplugin.endOfDirectory(pluginhandle)
+    elif loginResult == "captcha_req":
+        xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
     else:
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30082)+',10000,'+icon+')').encode("utf-8"))
 
@@ -109,6 +111,7 @@ def listAlbums(url):
             return
     spl = content.split('id="result_')
     videoimage = ScrapeUtils.VideoImage()
+    addDir(translation(30006), "", 'index', "")
     for i in range(1, len(spl), 1):
         entry = spl[i]
         match = re.compile('asin="(.+?)"', re.DOTALL).findall(entry)
@@ -309,17 +312,24 @@ def listSearchedSongs(url):
 
 
 def playTrack(asin):
-    content = postUnicodePage('https://www.amazon.de/dmls/', asin)
-    matchTrack=re.compile('"urlList":\["(.+?)"').findall(content)
-    trackUrl = ""
-    if matchTrack:
-        trackUrl = matchTrack[0]
-    play_item = xbmcgui.ListItem(path=trackUrl)
+    content = postUnicodePage('https://music.amazon.de/dmls/', asin)
+    temp_file_path = addonUserDataFolder + "/temp.m3u8"
+    if xbmcvfs.exists(temp_file_path):
+        xbmcvfs.delete(temp_file_path)
+    m3u_temp_file = xbmcvfs.File(temp_file_path, 'w')
+    manifest_match = re.compile('manifest":"(.+?)"',re.DOTALL).findall(content)
+    if manifest_match:
+        m3u_string = manifest_match[0]
+        m3u_string = m3u_string.replace("\\n", os.linesep)
+        log(m3u_string)
+        m3u_temp_file.write(m3u_string.encode("ascii"))
+    m3u_temp_file.close()
+    play_item = xbmcgui.ListItem(path=temp_file_path)
     if forceDVDPlayer:
         play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
     if forceDVDPlayer:
-        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(trackUrl, play_item)
+        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(temp_file_path, play_item)
 
 
 def listGenres():
@@ -372,16 +382,17 @@ def getUnicodePage(url):
 
 def postUnicodePage(url, asin, isRetry = False):
     print url
+    
     post_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
     headers = { 'User-agent': userAgent,
                 'Content-Encoding': 'amz-1.0',
                 'Content-Type': 'application/json',
-                'X-Amz-Target': 'com.amazon.digitalmusiclocator.DigitalMusicLocatorServiceExternal.getRestrictedStreamingURL',
+                'X-Amz-Target': 'com.amazon.digitalmusiclocator.DigitalMusicLocatorServiceExternal.getHLSManifest',
                 'csrf-token': addon.getSetting('csrf_Token'),
                 'csrf-rnd': addon.getSetting('csrf_rndToken'),
                 'csrf-ts': addon.getSetting('csrf_tsToken')
                 }
-    data = '{"customerId":"' + addon.getSetting('customerID') + '","deviceToken":{"deviceTypeId":"A16ZV8BU3SN1N3","deviceId":"' + addon.getSetting('req_dev_id') + '"},"appMetadata":{"https":"true"},"clientMetadata":{"clientId":"WebCP"},"contentId":{"identifier":"' + asin + '","identifierType":"ASIN"},"bitRate":"' + audioQuality + '"}'
+    data = '{"customerId":"' + addon.getSetting('customerID') + '","deviceToken":{"deviceTypeId":"A16ZV8BU3SN1N3","deviceId":"' + addon.getSetting('req_dev_id') + '"},"appMetadata":{"https":"true"},"clientMetadata":{"clientId":"WebCP"},"contentId":{"identifier":"' + asin + '","identifierType":"ASIN"},"bitRateList":["' + audioQuality + '"],"hlsVersion":"V3"}'
     coded_req = urllib2.Request(url, data, headers)
     content = ""
     try:
@@ -460,16 +471,27 @@ def login(content = None, statusOnly = False):
                 br.set_cookiejar(cj)
                 br.set_handle_gzip(True)
                 br.set_handle_robots(False)
-                br.addheaders = [('User-agent', userAgent)]
+                br.addheaders = [('User-Agent', userAgent)]
                 content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
                 br.select_form(name="signIn")
                 br["email"] = email 
                 br["password"] = password
-                br.addheaders = [('Accept-Encoding', 'gzip, deflate')]
+                br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'),
+                         ('Accept-Encoding', 'gzip, deflate'),
+                         ('Accept-Language', 'de,en-US;q=0.8,en;q=0.6'),
+                         ('Cache-Control', 'max-age=0'),
+                         ('Connection', 'keep-alive'),
+                         ('Content-Type', 'application/x-www-form-urlencoded'),
+                         ('User-Agent', userAgent),
+                         ('Upgrade-Insecure-Requests', '1')]
                 br.submit()
                 resp = br.response().read()
                 content = unicode(resp, "utf-8")
                 content = content.replace("\\","")
+                captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
+                if captcha_match:
+                    log("Captcha required!")
+                    return "captcha_req"
                 match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(content)
                 if match:
                     addon.setSetting('csrf_tsToken', match[0])
@@ -603,28 +625,29 @@ if os.path.exists(os.path.join(addonUserDataFolder, "cookies")):
 
 if os.path.exists(cookieFile):
     cj.load(cookieFile)
-else:
-    login()
 
-if mode == 'listAlbums':
-    listAlbums(url)
-elif mode == 'listPlaylists':
-    listPlaylists(url)
-elif mode == 'listSongs':
-    listSongs(url)
-elif mode == 'listSearchedSongs':
-    listSearchedSongs(url)
-elif mode == 'listGenres':
-    listGenres()
-elif mode == 'playTrack':
-    playTrack(asin)
-elif mode == 'search':
-    search(url)
-elif mode == 'login':
-    login()
-elif mode == 'deleteCookies':
-    deleteCookies()
-elif mode == 'deleteCache':
-    deleteCache()
+    if mode == 'listAlbums':
+        listAlbums(url)
+    elif mode == 'listPlaylists':
+        listPlaylists(url)
+    elif mode == 'listSongs':
+        listSongs(url)
+    elif mode == 'listSearchedSongs':
+        listSearchedSongs(url)
+    elif mode == 'listGenres':
+        listGenres()
+    elif mode == 'playTrack':
+        playTrack(asin)
+    elif mode == 'search':
+        search(url)
+    elif mode == 'login':
+        login()
+    elif mode == 'deleteCookies':
+        deleteCookies()
+    elif mode == 'deleteCache':
+        deleteCache()
+    else:
+        index()
 else:
     index()
+
