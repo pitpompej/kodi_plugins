@@ -321,7 +321,6 @@ def playTrack(asin):
     if manifest_match:
         m3u_string = manifest_match[0]
         m3u_string = m3u_string.replace("\\n", os.linesep)
-        log(m3u_string)
         m3u_temp_file.write(m3u_string.encode("ascii"))
     m3u_temp_file.close()
     play_item = xbmcgui.ListItem(path=temp_file_path)
