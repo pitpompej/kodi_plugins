@@ -327,6 +327,7 @@ def playTrack(asin):
     play_item = xbmcgui.ListItem(path=temp_file_path)
     if forceDVDPlayer:
         play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
+        play_item.setArt({"thumb": thumb})
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
     if forceDVDPlayer:
         xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(temp_file_path, play_item)
@@ -585,7 +586,7 @@ def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
     u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("latin"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("latin"))+"&album="+urllib.quote_plus(album_title.encode("latin"))
     ok = True
-    liz = xbmcgui.ListItem(name, iconImage="DefaultTVShows.png", thumbnailImage=iconimage)
+    liz = xbmcgui.ListItem(name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name, "duration": duration, "year": year, "genre": genre, "rating": rating, "tracknumber": trackNr, "artist": artist, "album": album_title })
 #    liz.setProperty("fanart_image", fanartFile)
     liz.setProperty('IsPlayable', 'true')
