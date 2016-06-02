@@ -1,3 +1,9 @@
+0.3.0
+- Login fix 2
+- adapted amazons new m3u8 data transfer
+- added one captcha detection message
+- added "back to main menu"
+- added/changed song thumbnail 
 0.2.4
 - Login fix as amazon changed their login site
 0.2.3
