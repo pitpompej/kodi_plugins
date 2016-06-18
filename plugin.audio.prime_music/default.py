@@ -450,7 +450,7 @@ def login(content = None, statusOnly = False):
     if content is None:
         content = getUnicodePage(urlMainS)
     signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
-    if '","isPrime":1' in content: #
+    if ',"isPrime":1' in content: #
         return "prime"
     elif signoutmatch and signoutmatch[0].strip() != "null":
         return "noprime"
