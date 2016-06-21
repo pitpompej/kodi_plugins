@@ -447,10 +447,11 @@ def search(type):
 
 
 def login(content = None, statusOnly = False):
+    is_prime_expression = "config.isPrimeMember',true"
     if content is None:
         content = getUnicodePage(urlMainS)
     signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
-    if ',"isPrime":1' in content: #
+    if is_prime_expression in content: #
         return "prime"
     elif signoutmatch and signoutmatch[0].strip() != "null":
         return "noprime"
@@ -516,7 +517,7 @@ def login(content = None, statusOnly = False):
                     addon.setSetting('customerID', customer_match[0])
                     log(customer_match[0])
         signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
-        if '","isPrime":1' in content: #
+        if is_prime_expression in content: #
             return "prime"
         elif signoutmatch[0].strip() != "null":
             return "noprime"
