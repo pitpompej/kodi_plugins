@@ -1,3 +1,5 @@
+0.4.0
+- added customized playlist support
 0.3.2
 - fixed the check for login fix
 0.3.1

@@ -84,6 +84,7 @@ def index():
         addDir(translation(30005), urlMain+"/s/ref=s9_aas_bw_srch?__mk_de_DE=%C5M%C5Z%D5%D1&rh=i%3Adigital-music-album%2Cn%3A5686557031%2Cp_n_format_browse-bin%3A180848031%2Cp_n_date_first_available_prime%3A6969880031&bbn=5686557031&sort=featured-rank&rw_html_to_wsrp=1&pf_rd_m=A3JWKAKR8XB7XF&pf_rd_s=merchandised-search-5&pf_rd_r=6RVAXVCW0CXA3QF4F86R&pf_rd_t=101&pf_rd_p=805206707&pf_rd_i=7457104031", 'listAlbums', "")
         addDir(translation(30016), "albums", 'search', "")
         addDir(translation(30017), "songs", 'search', "")
+        addDir(translation(30010), "playlists", 'listOwnPlaylists', "")
         xbmcplugin.endOfDirectory(pluginhandle)
     elif loginResult == "captcha_req":
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
@@ -313,7 +314,7 @@ def listSearchedSongs(url):
 
 
 def playTrack(asin):
-    content = postUnicodePage('https://music.amazon.de/dmls/', asin)
+    content = trackPostUnicodePage('https://music.amazon.de/dmls/', asin)
     temp_file_path = addonUserDataFolder + "/temp.m3u8"
     if xbmcvfs.exists(temp_file_path):
         xbmcvfs.delete(temp_file_path)
@@ -381,7 +382,74 @@ def getUnicodePage(url):
     return content
 
 
-def postUnicodePage(url, asin, isRetry = False):
+def showPlaylistContent():
+    content = playlistPostUnicodePage('https://music.amazon.de/cirrus/', url)
+    log(content)
+    spl = content.split("metadata")
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+
+        listId=re.compile(':"(.+?)"').findall(entry)
+        songTitle=re.compile('"title":"(.+?)"').findall(entry)
+        artist=re.compile('"artistName":"(.+?)"').findall(entry)
+        album_title=re.compile('"albumName":"(.+?)"').findall(entry)
+        trackID=re.compile('"asin":"(.+?)"').findall(entry)
+        album_image_match = ""
+        album_image=re.compile('"albumCoverImageLarge":"(.+?)"').findall(entry)
+        if album_image:
+            album_image_match = album_image[0]
+        if songTitle and '"primeStatus":"PRIME"' in entry:
+            addLink(artist[0]+": "+songTitle[0], "playTrack", trackID[0], album_image_match, "", "", artist[0], album_title[0])
+    next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
+    if next_available and next_available[0].isdigit():
+        playlist_id = url.split('&')
+        addDir(translation(30001), playlist_id[0] + "&nextResultsToken=" + next_available[0], "showPlaylistContent", "")
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
+
+def listOwnPlaylists(): 
+    content = playlistPostUnicodePage('https://music.amazon.de/cirrus/')
+    spl = content.split("adriveId")
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+
+        listId=re.compile(':"(.+?)"').findall(entry)
+        listTitle=re.compile('"title":"(.+?)"').findall(entry)
+        if listTitle:
+            addDir(listTitle[0], listId[0]+"&nextResultsToken=" ,"showPlaylistContent", "")
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
+
+
+def playlistPostUnicodePage(url, playlistId = ""):
+    br = mechanize.Browser()
+    br.set_cookiejar(cj)
+    br.set_handle_gzip(True)
+    br.set_handle_robots(False)
+    br.addheaders = [('User-Agent', userAgent),
+                ('X-Requested-With', 'XMLHttpRequest'),
+                ('Accept-Encoding', 'gzip, deflate'),
+                ('Content-Type', 'application/x-www-form-urlencoded'),
+                ('Accept', 'application/json, text/javascript, */*; q=0.01'), 
+                ('csrf-token', addon.getSetting('csrf_Token')),
+                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
+                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    resp = ''
+    content = ''
+    data = "maxResults=100&Operation=getPlaylists&caller=getServerListSongs&albumArtUrlsRedirects=false&albumArtUrlsSizeList.member.1=LARGE&trackColumns.member.1=albumAsin&trackColumns.member.2=artistAsin&trackColumns.member.3=albumArtistName&trackColumns.member.4=albumName&trackColumns.member.5=artistName&trackColumns.member.6=assetType&trackColumns.member.7=duration&trackColumns.member.8=objectId&trackColumns.member.9=sortAlbumArtistName&trackColumns.member.10=sortAlbumName&trackColumns.member.11=sortArtistName&trackColumns.member.12=title&trackColumns.member.13=asin&trackColumns.member.14=primeStatus&trackColumns.member.15=status&trackColumns.member.16=extension&trackColumns.member.17=purchased&trackColumns.member.18=uploaded&trackColumns.member.19=instantImport&trackColumns.member.20=albumCoverImageLarge&ContentType=JSON&customerInfo.customerId=" + addon.getSetting('customerID') + "&customerInfo.deviceId=" + addon.getSetting('req_dev_id') + "&customerInfo.deviceType=A16ZV8BU3SN1N3"
+    if playlistId:
+        data += "&includeTrackMetadata=true&trackCountOnly=false&playlistIdList.member.1=" + playlistId
+    else:
+        data += "&includeTrackMetadata=false&trackCountOnly=true&playlistIdList=&nextResultsToken="
+    try:
+        resp = br.open(url, data)
+        content = unicode(resp.read(), "utf-8")
+    except urllib2.HTTPError as e :
+        log(e.read())
+
+    return content
+
+def trackPostUnicodePage(url, asin, isRetry = False):
     print url
     
     post_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
@@ -408,7 +476,7 @@ def postUnicodePage(url, asin, isRetry = False):
         deleteCookies()
         login("dummy")
         if not isRetry:
-            return postUnicodePage(url, asin, True)
+            return trackPostUnicodePage(url, asin, True)
 
     return content
 
@@ -648,6 +716,10 @@ if os.path.exists(cookieFile):
         deleteCookies()
     elif mode == 'deleteCache':
         deleteCache()
+    elif mode == 'listOwnPlaylists':
+        listOwnPlaylists()
+    elif mode == 'showPlaylistContent':
+        showPlaylistContent()
     else:
         index()
 else:
