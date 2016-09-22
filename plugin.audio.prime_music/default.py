@@ -212,7 +212,7 @@ def listSongs(url):
     album_thumb_url = ""
     if album_thumb_match:
         album_thumb_url = videoimage.ImageFile(album_thumb_match[0])
-    artist_match = re.compile('roductInfoArtistLink".+?">.\s+?(\S.+?)\n', re.DOTALL).findall(content)
+    artist_match = re.compile('roductInfoArtistLink".+?">(\S.+?)</', re.DOTALL).findall(content)
     artist = ""
     run_per_song_check = False
     if artist_match:
@@ -226,7 +226,7 @@ def listSongs(url):
     album_songs = getSongList(content, run_per_song_check)
     if run_per_song_check == True:
         for song in album_songs:
-            addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], song["artist"], song["album_title"], song["year"])
+            addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], song["artist"], song["album_title"], song["year"], show_artist_and_title = True)
     else:
         for song in album_songs:
             addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], artist, album_title, song["year"])
@@ -244,7 +244,7 @@ def getSongList(content, with_album_and_artist=False):
         match = re.compile('data-asin="(.+?)"', re.DOTALL).findall(entry)
         if match :
             trackID = match[0]
-            match1 = re.compile('data-title="(.+?)"', re.DOTALL).findall(entry)
+            match1 = re.compile('TitleLink a-text-bold" href.+?">(.+?)<', re.DOTALL).findall(entry)
             title = None
             if match1:
                 title = match1[0]
@@ -650,12 +650,15 @@ def addDir(name, url, mode, iconimage, context_entries=[]):
     return ok
 
 
-def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating=""):
+def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating="", show_artist_and_title = False):
 #    filename = (''.join(c for c in url if c not in '/\\:?"*|<>')).strip()+".jpg"
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
     u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("latin"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("latin"))+"&album="+urllib.quote_plus(album_title.encode("latin"))
     ok = True
-    liz = xbmcgui.ListItem(name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
+    if show_artist_and_title == True:
+        liz = xbmcgui.ListItem(artist + ": " + name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
+    else:
+        liz = xbmcgui.ListItem(name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name, "duration": duration, "year": year, "genre": genre, "rating": rating, "tracknumber": trackNr, "artist": artist, "album": album_title })
 #    liz.setProperty("fanart_image", fanartFile)
     liz.setProperty('IsPlayable', 'true')
