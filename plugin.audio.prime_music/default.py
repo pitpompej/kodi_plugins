@@ -327,7 +327,7 @@ def playTrack(asin):
     m3u_temp_file.close()
     play_item = xbmcgui.ListItem(path=temp_file_path)
     if forceDVDPlayer:
-        play_item.setInfo(type="music", infoLabels={"title": name , "artist": g_artist, "album": g_album  })
+        play_item.setInfo(type="music", infoLabels={"title": name, "artist": g_artist, "album": g_album  })
         play_item.setArt({"thumb": thumb})
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
     if forceDVDPlayer:
@@ -653,7 +653,7 @@ def addDir(name, url, mode, iconimage, context_entries=[]):
 def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating="", show_artist_and_title = False):
 #    filename = (''.join(c for c in url if c not in '/\\:?"*|<>')).strip()+".jpg"
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
-    u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin) +"&name="+urllib.quote_plus(name.encode("latin"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("latin"))+"&album="+urllib.quote_plus(album_title.encode("latin"))
+    u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin)+"&name="+urllib.quote_plus(name.encode("utf8"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("utf8"))+"&album="+urllib.quote_plus(album_title.encode("utf8"))
     ok = True
     if show_artist_and_title == True:
         liz = xbmcgui.ListItem(artist + ": " + name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
@@ -666,15 +666,66 @@ def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album
     return ok
 
 
+"""
+following part that does consist of the two variabled _hexdig and _hextobyte and the two methods
+__unquote_to_bytes(string) and __unquote(string, encoding='utf-8', errors='replace') and the regexp _asciire
+are needed because the unquoting method of the urllib in python 2.7 is broken. Thus I used the one from python 3
+"""
+_hexdig = '0123456789ABCDEFabcdef'
+
+_hextobyte = None
+
+def __unquote_to_bytes(string):
+    string = string.encode('utf-8')
+    bits = string.split(b'%')
+    if len(bits) == 1:
+        return string
+    res = [bits[0]]
+    append = res.append
+    # Delay the initialization of the table to not waste memory
+    # if the function is never called
+    global _hextobyte
+    if _hextobyte is None:
+        _hextobyte = dict((a+b, chr(int(a+b,16))) for a in _hexdig for b in _hexdig)
+    for item in bits[1:]:
+        try:
+            append(_hextobyte[item[:2]])
+            append(item[2:])
+        except KeyError:
+            append(b'%')
+            append(item)
+    return b''.join(res)
+
+_asciire = re.compile('([\x00-\x7f]+)')
+
+def __unquote(string, encoding='utf-8', errors='replace'):
+    string = string.replace('+', ' ')
+    if '%' not in string:
+        string.split
+        return string
+    if encoding is None:
+        encoding = 'utf-8'
+    if errors is None:
+        errors = 'replace'
+    bits = _asciire.split(string)
+    res = [bits[0]]
+    append = res.append
+    for i in range(1, len(bits), 2):
+        append(__unquote_to_bytes(bits[i]).decode(encoding, errors))
+        append(bits[i + 1])
+    return ''.join(res)
+
+
 params = parameters_string_to_dict(sys.argv[2])
-mode = urllib.unquote_plus(params.get('mode', ''))
-url = urllib.unquote_plus(params.get('url', ''))
-asin = urllib.unquote_plus(params.get('asin', ''))
-thumb = urllib.unquote_plus(params.get('thumb', ''))
-name = urllib.unquote_plus(params.get('name', ''))
-g_artist = urllib.unquote_plus(params.get('artist', ''))
-g_album = urllib.unquote_plus(params.get('album', ''))
-videoType = urllib.unquote_plus(params.get('videoType', ''))
+mode = __unquote(params.get('mode', ''))
+url = __unquote(params.get('url', ''))
+asin = __unquote(params.get('asin', ''))
+thumb = __unquote(params.get('thumb', ''))
+name = __unquote(params.get('name', ''))
+unicode_name = __unquote(params.get('name', ''))
+g_artist = __unquote(params.get('artist', ''))
+g_album = __unquote(params.get('album', ''))
+videoType = __unquote(params.get('videoType', ''))
 
 if not os.path.isdir(addonUserDataFolder):
     os.mkdir(addonUserDataFolder)
