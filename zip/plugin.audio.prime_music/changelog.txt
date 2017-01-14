@@ -1,3 +1,6 @@
+0.4.5
+- fixed encoding problems when title/album/artist-names contains non latin1 letters
+- added property that provides current-playlist and playing playlist name
 0.4.4
 - fixed artist name display when playing song from album view
 - added artist name in the amazon playlist listing
