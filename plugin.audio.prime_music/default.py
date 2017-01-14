@@ -332,7 +332,7 @@ def playTrack(asin):
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
     if forceDVDPlayer:
         xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(temp_file_path, play_item)
-
+    
 
 def listGenres():
     addDir(translation(30020), urlMain+"/s?rh=n%3A5686557031%2Cn%3A180643031%2Cp_n_format_browse-bin%3A180848031&bbn=5686557031&sort=featured-rank&ie=UTF8", 'listAlbums', "")
@@ -384,7 +384,6 @@ def getUnicodePage(url):
 
 def showPlaylistContent():
     content = playlistPostUnicodePage('https://music.amazon.de/cirrus/', url)
-    log(content)
     spl = content.split("metadata")
     for i in range(1, len(spl), 1):
         entry = spl[i]
@@ -404,6 +403,11 @@ def showPlaylistContent():
     if next_available and next_available[0].isdigit():
         playlist_id = url.split('&')
         addDir(translation(30001), playlist_id[0] + "&nextResultsToken=" + next_available[0], "showPlaylistContent", "")
+    playlist_title = ""
+    playlist_title_matches = re.compile('}],"title":"(.+?)"').findall(content)
+    if playlist_title_matches:
+        playlist_title = playlist_title_matches[0]
+    xbmcgui.Window(10000).setProperty("AmazonMusic-CurrentPlaylist",playlist_title)
     xbmcplugin.endOfDirectory(pluginhandle)
     xbmc.sleep(100)
 
@@ -745,7 +749,16 @@ if not os.path.isdir(libraryFolderTV):
 if os.path.exists(os.path.join(addonUserDataFolder, "cookies")):
     os.rename(os.path.join(addonUserDataFolder, "cookies"), cookieFile)
 
+if mode == 'playTrack':
+    playlist_name = ""
+    playlist_name = xbmcgui.Window(10000).getProperty("AmazonMusic-CurrentPlaylist") 
+    if playlist_name:
+        xbmcgui.Window(10000).setProperty("AmazonMusic-PlayingPlaylist", playlist_name)
+else:
+    xbmcgui.Window(10000).clearProperty("AmazonMusic-CurrentPlaylist") 
+    xbmcgui.Window(10000).clearProperty("AmazonMusic-PlayingPlaylist") 
 
+#log(mode)
 
 if os.path.exists(cookieFile):
     cj.load(cookieFile)
