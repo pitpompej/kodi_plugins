@@ -5,6 +5,7 @@
         <setting id="forceDVDPlayer" type="bool" label="30105" default="false"/>
     </category>
     <category label="30203">
+        <setting id="ssl_verif" type="bool" label="30117" default="false"/>
         <setting label="30116" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCache)"/>
         <setting label="30115" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCookies)"/>
     </category>

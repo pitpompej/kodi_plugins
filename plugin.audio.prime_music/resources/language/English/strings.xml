@@ -43,6 +43,7 @@
   <string id="30105">Use DVD-Player for playback</string>
   <string id="30115">Delete cookies</string>
   <string id="30116">Delete cache</string>
+  <string id="30117">Disable SSL certificate check</string>
   <string id="30201">General</string>
   <string id="30203">Advanced</string>
 </strings>

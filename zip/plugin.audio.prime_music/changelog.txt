@@ -1,3 +1,6 @@
+0.4.8
+- added multifactor authentification
+- ssl certificate verification can now be disabled via plugin settings
 0.4.7
 - changing default value for the "force DVD player" setting to false as kodi 17 does not provide player enforcing by plugin
 0.4.5

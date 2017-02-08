@@ -13,14 +13,14 @@ class AmazonWebContent():
         pass
 
 class VideoImage():
-    
+
     def __init__(self):
         addonID = 'plugin.audio.prime_music'
         addon = xbmcaddon.Addon(id=addonID)
         addonUserDataFolder = xbmc.translatePath("special://profile/addon_data/"+addonID)
         self.cacheFolder = os.path.join(addonUserDataFolder, "cache", "covers")
         pass
-    
+
     def ImageFile(self, imgsrc):
         urlinfo = urlparse(imgsrc)
         path = urlinfo[2]
@@ -35,14 +35,14 @@ class VideoImage():
         f.write(WebContent().DownloadFile(self.ImageFile(imgsrc)))
         f.close()
 
-    
+
     def HasCachedImage(self, asin):
         imgfile = os.path.join(self.cacheFolder, asin + ".jpg")
         if (os.path.exists(imgfile)):
             return True
         return False
 
-    
+
     def GetImage(self, asin, imgsrc):
         if not self.HasCachedImage(asin):
             self.ImageDownload(asin, imgsrc)
