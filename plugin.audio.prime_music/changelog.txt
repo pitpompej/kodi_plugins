@@ -1,3 +1,6 @@
+0.5.0
+- fixed bug resulting in empty album song list for music unlimited users
+- playback of uploaded and purchased (amazon auto rip) songs in own playlists now possible
 0.4.8
 - added multifactor authentification
 - ssl certificate verification can now be disabled via plugin settings
