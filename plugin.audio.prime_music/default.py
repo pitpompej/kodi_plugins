@@ -243,7 +243,7 @@ def getSongList(content, with_album_and_artist=False):
     spl = content.split('id="dmusic_tracklist_player_row_')
     for i in range(1, len(spl), 1):
         entry = spl[i]
-        if not 'CheckPrime"></i>' in entry:
+        if not 'contentSubscriptionMode&quot;:&quot;UNLIMITED&quot;' in entry and not 'contentSubscriptionMode&quot;:&quot;PRIME&quot;' in entry:
             continue
         match = re.compile('data-asin="(.+?)"', re.DOTALL).findall(entry)
         if match :
