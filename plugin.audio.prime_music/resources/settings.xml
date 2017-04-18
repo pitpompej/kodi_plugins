@@ -2,7 +2,7 @@
     <category label="30201">
         <setting id="siteVersion" type="enum" label="30103" values="US|UK|DE" default="2"/>
         <setting id="quality" type="enum" label="30104" values="256kbit|128kbit|48kbit" default="0"/>
-        <setting id="forceDVDPlayer" type="bool" label="30105" default="false"/>
+        <setting id="forceDVDPlayer" type="bool" label="30105" default="true"/>
     </category>
     <category label="30203">
         <setting id="ssl_verif" type="bool" label="30117" default="false"/>

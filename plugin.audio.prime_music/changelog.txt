@@ -1,3 +1,5 @@
+0.5.1
+- finally solved the stuttering problem (many thanks to zeripath for finding a solution)
 0.5.0
 - fixed bug resulting in empty album song list for music unlimited users
 - playback of uploaded and purchased (amazon auto rip) songs in own playlists now possible

@@ -319,7 +319,11 @@ def listSearchedSongs(url):
 
 def playTrack(asin):
     content = trackPostUnicodeGetHLSPage('https://music.amazon.de/dmls/', asin)
-    temp_file_path = addonUserDataFolder + "/temp.m3u8"
+    temp_file_path = addonUserDataFolder
+    if forceDVDPlayer:
+        temp_file_path += "/temp.mp4"
+    else:
+        temp_file_path += "/temp.m3u8"
     if xbmcvfs.exists(temp_file_path):
         xbmcvfs.delete(temp_file_path)
     m3u_temp_file = xbmcvfs.File(temp_file_path, 'w')
@@ -330,12 +334,7 @@ def playTrack(asin):
         m3u_temp_file.write(m3u_string.encode("ascii"))
     m3u_temp_file.close()
     play_item = xbmcgui.ListItem(path=temp_file_path)
-    if forceDVDPlayer:
-        play_item.setInfo(type="music", infoLabels={"title": name, "artist": g_artist, "album": g_album  })
-        play_item.setArt({"thumb": thumb})
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
-    if forceDVDPlayer:
-        xbmc.Player(xbmc.PLAYER_CORE_DVDPLAYER).play(temp_file_path, play_item)
 
 def playMP3Track(songId):
     content = trackPostUnicodeGetRestrictedPage('https://music.amazon.de/dmls/', songId)
