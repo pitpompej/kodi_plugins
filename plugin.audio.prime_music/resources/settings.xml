@@ -3,6 +3,13 @@
         <setting id="siteVersion" type="enum" label="30103" values="US|UK|DE" default="2"/>
         <setting id="quality" type="enum" label="30104" values="256kbit|128kbit|48kbit" default="0"/>
         <setting id="forceDVDPlayer" type="bool" label="30105" default="true"/>
+        <setting id="csrf_Token" type="text" visible="false" label="csrf_Token" default=""/>
+        <setting id="csrf_rndToken" type="text" visible="false" label="csrf_rndToken" default=""/>
+        <setting id="csrf_tsToken" type="text" visible="false" label="csrf_tsToken" default=""/>
+        <setting id="customerID" type="text" visible="false" label="customerID" default=""/>
+        <setting id="email" type="text" visible="false" label="email" default=""/>
+        <setting id="password" type="text" visible="false" label="password" default=""/>
+        <setting id="req_dev_id" type="text" visible="false" label="req_dev_id" default=""/>
     </category>
     <category label="30203">
         <setting id="ssl_verif" type="bool" label="30117" default="false"/>
