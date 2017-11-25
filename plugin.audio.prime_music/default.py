@@ -123,9 +123,11 @@ def listAlbums(url):
         if match :
             videoID = match[0]
             match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
-            title = None
+            title = ""
             if match1:
                 title = match1[0]
+            else:
+                continue
             title = cleanInput(title)
             artist = ""
             match1 = re.compile('von </span><span class="a-size-small a-color-secondary"><.+?>(.+?)<', re.DOTALL).findall(entry)
@@ -134,11 +136,15 @@ def listAlbums(url):
                 artist += ": "
             year = ""
             match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumbUrl = videoimage.ImageFile(match[0])
+            thumbUrl = ""
+            if match:
+                thumbUrl = videoimage.ImageFile(match[0])
             albumUrl = ""
             match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
             if match:
                 albumUrl = match[0]
+            else:
+                continue
             addDir(artist + title, albumUrl, "listSongs", thumbUrl)
     match_nextpage = re.compile('ass="pagnNext".*?href="(.+?)">', re.DOTALL).findall(content)
     if match_nextpage:

@@ -1,3 +1,5 @@
+0.5.3
+- fixed bug that tries to parse incomplete list element from amazon prime album list
 0.5.2
 - fixed settings issue introduced with kodi leia dev build and typo in intermediate addon version 0.5.1.1
 0.5.1
