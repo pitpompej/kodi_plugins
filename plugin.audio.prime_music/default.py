@@ -415,7 +415,7 @@ def showPlaylistContent():
         album_image=re.compile('"albumCoverImageLarge":"(.+?)"').findall(entry)
         if album_image:
             album_image_match = album_image[0]
-        if songTitle and '"primeStatus":"PRIME"' in entry:
+        if songTitle and ('"primeStatus":"PRIME"' in entry or '"primeStatus":"NOT_PRIME"' in entry) and '"status":"AVAILABLE"' in entry:
             addLink(artist[0]+": "+songTitle[0], "playTrack", trackID[0], album_image_match, "", "", artist[0], album_title[0])
         elif songTitle and ('"purchased":"true"' in entry or '"instantImport":"true"' in entry):
             trackID=re.compile('"objectId":"(.+?)"').findall(entry)
