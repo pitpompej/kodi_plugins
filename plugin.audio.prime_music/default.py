@@ -179,9 +179,11 @@ def listPlaylists(url):
         if match :
             videoID = match[0]
             match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
-            title = None
+            title = ""
             if match1:
                 title = match1[0]
+            else:
+                continue
             title = cleanInput(title)
             artist = ""
 #            match1 = re.compile('von </span><span class="a-size-small a-color-secondary"><.+?>(.+?)<', re.DOTALL).findall(entry)
@@ -195,6 +197,8 @@ def listPlaylists(url):
             match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
             if match:
                 albumUrl = match[0]
+            else:
+                continue
             addDir(artist + title, albumUrl, "listSongs", thumbUrl)
     match_nextpage = re.compile('ass="pagnNext".*?href="(.+?)">', re.DOTALL).findall(content)
     if match_nextpage:
@@ -255,9 +259,11 @@ def getSongList(content, with_album_and_artist=False):
         if match :
             trackID = match[0]
             match1 = re.compile('TitleLink a-text-bold" href.+?">(.+?)<', re.DOTALL).findall(entry)
-            title = None
+            title = ""
             if match1:
                 title = match1[0]
+            else:
+                continue
             title = cleanInput(title)
             year = ""
             artist=""
@@ -299,15 +305,15 @@ def listSearchedSongs(url):
         if match :
             trackID = match[0]
             match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
-            title = None
+            title = ""
             if match1:
                 title = match1[0]
+            else:
+                continue
             title = cleanInput(title)
             year = ""
-            customer_match = re.compile('CustomerID=(.+?)&', re.DOTALL).findall(entry)
-            customer_id = ""
-            if customer_match:
-                customer_id = customer_match[0]
+            artist = ""
+            album_title = ""
             artist_match = re.compile('artist-redirect.+?">(.+?)<', re.DOTALL).findall(entry)
             if artist_match:
                 artist = artist_match[0]
