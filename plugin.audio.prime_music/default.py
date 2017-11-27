@@ -66,6 +66,9 @@ addon.setSetting('password', '')
 quality = addon.getSetting("quality")
 audioQuality = ["HIGH", "MEDIUM", "LOW"][int(quality)]
 forceDVDPlayer = addon.getSetting("forceDVDPlayer") == "true"
+defaultview_songs = addon.getSetting("songDefaultView")
+defaultview_playlists = addon.getSetting("playlistDefaultView")
+defaultview_albums = addon.getSetting("albumDefaultView")
 
 cookieFile = os.path.join(addonUserDataFolder, siteVersion + ".cookies")
 
@@ -150,6 +153,8 @@ def listAlbums(url):
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listAlbums", "")
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_albums:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_albums)
     xbmc.sleep(100)
 
 def listPlaylists(url):
@@ -204,6 +209,8 @@ def listPlaylists(url):
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listPlaylists", "")
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_playlists:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_playlists)
     xbmc.sleep(100)
 
 
@@ -245,6 +252,8 @@ def listSongs(url):
         for song in album_songs:
             addLink(song["title"], "playTrack", song["trackID"], album_thumb_url, "", song["track_nr"], artist, album_title, song["year"])
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 
@@ -325,6 +334,8 @@ def listSearchedSongs(url):
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listSearchedSongs", "")
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 
@@ -436,6 +447,8 @@ def showPlaylistContent():
         playlist_title = playlist_title_matches[0]
     xbmcgui.Window(10000).setProperty("AmazonMusic-CurrentPlaylist",playlist_title)
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 def listOwnPlaylists():
@@ -449,6 +462,8 @@ def listOwnPlaylists():
         if listTitle:
             addDir(listTitle[0], listId[0]+"&nextResultsToken=" ,"showPlaylistContent", "")
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 
