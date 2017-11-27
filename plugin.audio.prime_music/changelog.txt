@@ -1,3 +1,6 @@
+0.6.0
+- own playlists now also list music unlimited songs
+- clean up
 0.5.3
 - fixed bug that tries to parse incomplete list element from amazon prime album list
 0.5.2
