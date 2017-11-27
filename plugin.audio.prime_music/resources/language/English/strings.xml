@@ -44,6 +44,10 @@
   <string id="30115">Delete cookies</string>
   <string id="30116">Delete cache</string>
   <string id="30117">Disable SSL certificate check</string>
+  <string id="30118">Default view ID for songs</string>
+  <string id="30119">Default view ID for albums</string>
+  <string id="30120">Default view ID for playlists</string>
+  <string id="30121">Forced views</string>
   <string id="30201">General</string>
   <string id="30203">Advanced</string>
 </strings>
