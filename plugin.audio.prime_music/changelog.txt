@@ -1,3 +1,5 @@
+0.7.0
+- added forced view type option, thx to sualfred
 0.6.0
 - own playlists now also list music unlimited songs
 - clean up
