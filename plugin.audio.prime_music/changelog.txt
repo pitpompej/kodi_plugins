@@ -1,3 +1,6 @@
+0.7.1
+- added further playback item info to provide osmosis plugin, thx @ gismo112
+- clean up
 0.7.0
 - added forced view type option, thx to sualfred
 0.6.0
