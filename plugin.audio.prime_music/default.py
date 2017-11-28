@@ -357,6 +357,9 @@ def playTrack(asin):
         m3u_temp_file.write(m3u_string.encode("ascii"))
     m3u_temp_file.close()
     play_item = xbmcgui.ListItem(path=temp_file_path)
+    tracknumber = xbmc.getInfoLabel('ListItem.TrackNumber') if xbmc.getInfoLabel('ListItem.TrackNumber') != '' else xbmc.getInfoLabel('Playlist.Position')
+    play_item.setInfo('music', {'album': g_album, 'artist': g_artist, 'title': name, 'TrackNumber': tracknumber})
+    play_item.setArt({'thumb': thumb})
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
 
 def playMP3Track(songId):
@@ -365,6 +368,9 @@ def playMP3Track(songId):
     if url_list_match:
         mp3_file_string = url_list_match[0]
         play_item = xbmcgui.ListItem(path=mp3_file_string)
+        tracknumber = xbmc.getInfoLabel('ListItem.TrackNumber') if xbmc.getInfoLabel('ListItem.TrackNumber') != '' else xbmc.getInfoLabel('Playlist.Position')
+        play_item.setInfo('music', {'album': g_album, 'artist': g_artist, 'title': name, 'TrackNumber': tracknumber})
+        play_item.setArt({'thumb': thumb}) 
         xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
 
 
