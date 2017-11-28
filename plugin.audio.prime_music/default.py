@@ -45,18 +45,10 @@ socket.setdefaulttimeout(30)
 pluginhandle = int(sys.argv[1])
 cj = cookielib.MozillaCookieJar()
 cacheFolder = os.path.join(addonUserDataFolder, "cache")
-cacheFolderCoversTMDB = os.path.join(cacheFolder, "covers")
-cacheFolderFanartTMDB = os.path.join(cacheFolder, "fanart")
+#cacheFolderFanartTMDB = os.path.join(cacheFolder, "fanart")
 addonFolderResources = os.path.join(addonFolder, "resources")
 defaultFanart = os.path.join(addonFolderResources, "fanart.jpg")
-libraryFolder = os.path.join(addonUserDataFolder, "library")
-libraryFolderMovies = os.path.join(libraryFolder, "Movies")
-libraryFolderTV = os.path.join(libraryFolder, "TV")
-debugFile = os.path.join(addonUserDataFolder, "debug")
-maxDevices = 3
-maxDevicesWaitTime = 120
 siteVersion = addon.getSetting("siteVersion")
-apiMain = ["atv-ps", "atv-ps-eu", "atv-ps-eu"][int(siteVersion)]
 siteVersionsList = ["com", "co.uk", "de"]
 siteVersion = siteVersionsList[int(siteVersion)]
 urlMainS = "https://www.amazon."+siteVersion
@@ -190,21 +182,18 @@ def listPlaylists(url):
             else:
                 continue
             title = cleanInput(title)
-            artist = ""
-#            match1 = re.compile('von </span><span class="a-size-small a-color-secondary"><.+?>(.+?)<', re.DOTALL).findall(entry)
-#            if match1:
-#                artist = match1[0]
-#                artist += ": "
-#            year = ""
             match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumbUrl = videoimage.ImageFile(match[0])
+            if match:
+                thumbUrl = videoimage.ImageFile(match[0])
+            else:
+                thumbUrl = ""
             albumUrl = ""
             match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
             if match:
                 albumUrl = match[0]
             else:
                 continue
-            addDir(artist + title, albumUrl, "listSongs", thumbUrl)
+            addDir(title, albumUrl, "listSongs", thumbUrl)
     match_nextpage = re.compile('ass="pagnNext".*?href="(.+?)">', re.DOTALL).findall(content)
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listPlaylists", "")
@@ -371,7 +360,7 @@ def playMP3Track(songId):
     if url_list_match:
         mp3_file_string = url_list_match[0]
         play_item = xbmcgui.ListItem(path=mp3_file_string)
-        play_item = setPlayItem(play_item)
+        play_item = setPlayItemInfo(play_item)
         xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
 
 
@@ -703,7 +692,6 @@ def cleanInput(str):
             str = str.replace("&#"+c+";", unichr(int(c)))
     p = HTMLParser()
     str = p.unescape(str)
-    #str = str.encode("utf-8")
     return str
 
 
@@ -826,22 +814,13 @@ thumb = __unquote(params.get('thumb', ''))
 name = __unquote(params.get('name', ''))
 g_artist = __unquote(params.get('artist', ''))
 g_album = __unquote(params.get('album', ''))
-videoType = __unquote(params.get('videoType', ''))
 
 if not os.path.isdir(addonUserDataFolder):
     os.mkdir(addonUserDataFolder)
 if not os.path.isdir(cacheFolder):
     os.mkdir(cacheFolder)
-if not os.path.isdir(cacheFolderCoversTMDB):
-    os.mkdir(cacheFolderCoversTMDB)
-if not os.path.isdir(cacheFolderFanartTMDB):
-    os.mkdir(cacheFolderFanartTMDB)
-if not os.path.isdir(libraryFolder):
-    os.mkdir(libraryFolder)
-if not os.path.isdir(libraryFolderMovies):
-    os.mkdir(libraryFolderMovies)
-if not os.path.isdir(libraryFolderTV):
-    os.mkdir(libraryFolderTV)
+#if not os.path.isdir(cacheFolderFanartTMDB):
+#    os.mkdir(cacheFolderFanartTMDB)
 
 if os.path.exists(os.path.join(addonUserDataFolder, "cookies")):
     os.rename(os.path.join(addonUserDataFolder, "cookies"), cookieFile)
