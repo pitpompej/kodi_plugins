@@ -53,8 +53,6 @@ siteVersionsList = ["com", "co.uk", "de"]
 siteVersion = siteVersionsList[int(siteVersion)]
 urlMainS = "https://www.amazon."+siteVersion
 urlMain = urlMainS
-addon.setSetting('email', '')
-addon.setSetting('password', '')
 quality = addon.getSetting("quality")
 audioQuality = ["HIGH", "MEDIUM", "LOW"][int(quality)]
 forceDVDPlayer = addon.getSetting("forceDVDPlayer") == "true"
@@ -85,6 +83,7 @@ def index():
         addDir(translation(30016), "albums", 'search', "")
         addDir(translation(30017), "songs", 'search', "")
         addDir(translation(30010), "playlists", 'listOwnPlaylists', "")
+        addDir('Meine Alben', "myAlbums", 'listOwnAlbums', "")
         xbmcplugin.endOfDirectory(pluginhandle)
     elif loginResult == "captcha_req":
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
@@ -116,7 +115,6 @@ def listAlbums(url):
         entry = spl[i]
         match = re.compile('asin="(.+?)"', re.DOTALL).findall(entry)
         if match :
-            videoID = match[0]
             match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
             title = ""
             if match1:
@@ -174,7 +172,6 @@ def listPlaylists(url):
         entry = spl[i]
         match = re.compile('asin="(.+?)"', re.DOTALL).findall(entry)
         if match :
-            videoID = match[0]
             match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
             title = ""
             if match1:
@@ -415,24 +412,27 @@ def getUnicodePage(url):
 def showPlaylistContent():
     content = playlistPostUnicodePage('https://music.amazon.de/cirrus/', url)
     debug(content)
-    spl = content.split("metadata")
-    for i in range(1, len(spl), 1):
-        entry = spl[i]
-
-        listId=re.compile(':"(.+?)"').findall(entry)
-        songTitle=re.compile('"title":"(.+?)"').findall(entry)
-        artist=re.compile('"artistName":"(.+?)"').findall(entry)
-        album_title=re.compile('"albumName":"(.+?)"').findall(entry)
-        trackID=re.compile('"asin":"(.+?)"').findall(entry)
-        album_image_match = ""
-        album_image=re.compile('"albumCoverImageLarge":"(.+?)"').findall(entry)
-        if album_image:
-            album_image_match = album_image[0]
-        if songTitle and ('"primeStatus":"PRIME"' in entry or '"primeStatus":"NOT_PRIME"' in entry) and '"status":"AVAILABLE"' in entry:
-            addLink(artist[0]+": "+songTitle[0], "playTrack", trackID[0], album_image_match, "", "", artist[0], album_title[0])
-        elif songTitle and ('"purchased":"true"' in entry or '"instantImport":"true"' in entry):
-            trackID=re.compile('"objectId":"(.+?)"').findall(entry)
-            addLink(artist[0]+": "+songTitle[0], "playMP3Track", trackID[0], album_image_match, "", "", artist[0], album_title[0])
+    obj = json.loads(content)
+    root = obj['getPlaylistsResponse']['getPlaylistsResult']['playlistInfoList'][0]
+    tracks = root['playlistEntryList']
+    for track in tracks:
+        coid = track['trackAdriveId']
+        meta = track['metadata']
+        artist = meta['albumArtistName']
+        album_title = meta['albumName']
+        songTitle = meta['title']
+        asin = ''
+        if('asin' in meta):
+            asin = meta['asin']
+        objectId = meta['objectId']
+        icon = ''
+        if('albumCoverImageLarge' in meta):
+            icon = meta['albumCoverImageLarge']
+        if songTitle:
+            if('primeStatus' in meta):
+                addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
+            else:
+                addLink(artist+": "+songTitle, "playMP3Track", coid, icon, "", "", artist, album_title)
     next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
     if next_available and next_available[0].isdigit():
         playlist_id = url.split('&')
@@ -461,6 +461,165 @@ def listOwnPlaylists():
     if defaultview_songs:
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
+
+def listOwnAlbums():
+    content = albumPostUnicodePage('https://music.amazon.de/cirrus/')
+    spl = content.split("albumArtLocator")
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+        listId=re.compile(':"(.+?)"').findall(entry)
+        listArtist=re.compile('"albumArtistName":"(.+?)"').findall(entry)
+        listTitle=re.compile('"albumName":"(.+?)"').findall(entry)
+        sortArtist=re.compile('"sortAlbumArtistName":"(.+?)"').findall(entry)
+        sortTitle=re.compile('"sortAlbumName":"(.+?)"').findall(entry)
+        listIcon=re.compile('"albumCoverImageMedium":"(.+?)"').findall(entry)
+        if listTitle:
+            addDirAlbum(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", listIcon[0], sortArtist[0], sortTitle[0] )
+    xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+    xbmc.sleep(100)
+
+
+def albumPostUnicodePage(url, playlistId = ""):
+    br = mechanize.Browser()
+    br.set_cookiejar(cj)
+    br.set_handle_gzip(True)
+    br.set_handle_robots(False)
+    br.addheaders = [('User-Agent', userAgent),
+                ('X-Requested-With', 'XMLHttpRequest'),
+                ('Accept-Encoding', 'gzip, deflate'),
+                ('Content-Type', 'application/x-www-form-urlencoded'),
+                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
+                ('csrf-token', addon.getSetting('csrf_Token')),
+                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
+                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    resp = ''
+    content = ''
+    postDict = {
+        'searchReturnType' : 'ALBUMS',
+        'searchCriteria.member.1.attributeName' : 'status',
+        'searchCriteria.member.1.comparisonType' : 'EQUALS',
+        'searchCriteria.member.1.attributeValue' : 'AVAILABLE',
+        'searchCriteria.member.2.attributeName' : 'trackStatus',
+        'searchCriteria.member.2.comparisonType' : 'IS_NULL',
+        'albumArtUrlsSizeList.member.1' : 'MEDIUM',
+        'selectedColumns.member.1' : 'albumArtistName',
+        'selectedColumns.member.2' : 'albumName',
+        'selectedColumns.member.3' : 'artistName',
+        'selectedColumns.member.4' : 'objectId',
+        'selectedColumns.member.5' : 'primaryGenre',
+        'selectedColumns.member.6' : 'sortAlbumArtistName',
+        'selectedColumns.member.7' : 'sortAlbumName',
+        'selectedColumns.member.8' : 'sortArtistName',
+        'selectedColumns.member.9' : 'albumCoverImageMedium',
+        'selectedColumns.member.10' : 'albumAsin',
+        'selectedColumns.member.11' : 'artistAsin',
+        'selectedColumns.member.12' : 'gracenoteId',
+        'selectedColumns.member.13' : 'physicalOrderId',
+        'maxResults' : '100',
+        'Operation' : 'searchLibrary',
+        'caller' : 'getAllDataByMetaType',
+        'sortCriteriaList.member.1.sortColumn' : 'sortAlbumArtistName',
+        'sortCriteriaList.member.1.sortType' : 'ASC',
+        'sortCriteriaList.member.2.sortColumn' : 'sortAlbumName',
+        'sortCriteriaList.member.2.sortType' : 'ASC',
+        'ContentType' : 'JSON',
+        'customerInfo.customerId' : addon.getSetting('customerID'),
+        'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
+        'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
+        }
+    params = urllib.urlencode(postDict)
+    try:
+        resp = br.open(url, params)
+        content = unicode(resp.read(), "utf-8")
+    except urllib2.HTTPError as e :
+        log(e.read())
+    return content
+
+
+def showAlbumContent(ArtistName, AlbumName):
+    artist = ArtistName
+    title = AlbumName
+    content = albumTracksPostUnicodePage('https://music.amazon.de/cirrus/', artist, title) 
+    obj = json.loads(content)
+    root = obj['selectTrackMetadataResponse']['selectTrackMetadataResult']
+    tracks = root['trackInfoList']
+    for track in tracks:
+        coid = track['adriveId']
+        meta = track['metadata']
+
+        artistName = meta['albumArtistName']
+        albumName = meta['albumName']
+        title = meta['title']
+
+        asin =''
+        if('asin' in meta):
+            asin = meta['asin']
+        icon = meta['albumCoverImageFull']
+
+        if('primeStatus' in meta):
+            addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, icon, "", "", artistName, albumName)
+        else:
+            addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, icon, "", "", artistName, albumName, "")
+
+    xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+    xbmc.sleep(100)
+
+
+def albumTracksPostUnicodePage(url, artist, title):
+    br = mechanize.Browser()
+    br.set_cookiejar(cj)
+    br.set_handle_gzip(True)
+    br.set_handle_robots(False)
+    br.addheaders = [('User-Agent', userAgent),
+                ('X-Requested-With', 'XMLHttpRequest'),
+                ('Accept-Encoding', 'gzip, deflate'),
+                ('Content-Type', 'application/x-www-form-urlencoded'),
+                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
+                ('csrf-token', addon.getSetting('csrf_Token')),
+                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
+                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    resp = ''
+    content = ''
+    postDict = {
+        'selectCriteriaList.member.1.attributeName' : 'status',
+        'selectCriteriaList.member.1.comparisonType' : 'EQUALS',
+        'selectCriteriaList.member.1.attributeValue' : 'AVAILABLE',
+        'selectCriteriaList.member.2.attributeName' : 'trackStatus',
+        'selectCriteriaList.member.2.comparisonType' : 'IS_NULL',
+        'selectCriteriaList.member.3.attributeName' : 'sortAlbumArtistName',
+        'selectCriteriaList.member.3.comparisonType' : 'EQUALS',
+        'selectCriteriaList.member.3.attributeValue' : artist,
+        'selectCriteriaList.member.4.attributeName' : 'sortAlbumName',
+        'selectCriteriaList.member.4.comparisonType' : 'EQUALS',
+        'selectCriteriaList.member.4.attributeValue' : title,
+        'albumArtUrlsSizeList.member.1' : 'FULL',
+        'albumArtUrlsSizeList.member.2' : 'LARGE',
+        'albumArtUrlsRedirects' : 'false',
+        'maxResults' : '100',
+        'Operation' : 'selectTrackMetadata',
+        'distinctOnly' : 'false',
+        'countOnly' : 'false',
+        'caller' : 'getServerData',
+        'selectedColumns.member.1' : '*',
+        'sortCriteriaList.member.1.sortColumn' : 'trackNum',
+        'sortCriteriaList.member.1.sortType' : 'ASC',
+        'ContentType' : 'JSON',
+        'customerInfo.customerId' : addon.getSetting('customerID'),
+        'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
+        'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
+        }
+    params = urllib.urlencode(postDict)  
+
+    try:
+        resp = br.open(url, params)
+        content = unicode(resp.read(), "utf-8")
+    except urllib2.HTTPError as e :
+        log(e.read())
+    return content
 
 
 def playlistPostUnicodePage(url, playlistId = ""):
@@ -594,81 +753,86 @@ def login(content = None, statusOnly = False):
             return "none"
         deleteCookies()
         content = ""
-        keyboard = xbmc.Keyboard('', translation(30090))
-        keyboard.doModal()
-        if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
-            email = unicode(keyboard.getText(), "utf-8")
+
+        email=addon.getSetting('email')
+        password=addon.getSetting('password')
+        if not email:
+            keyboard = xbmc.Keyboard('', translation(30090))
+            keyboard.doModal()
+            if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
+                email = unicode(keyboard.getText(), "utf-8")
+        if not password:
             keyboard = xbmc.Keyboard('', translation(30091), True)
             keyboard.setHiddenInput(True)
             keyboard.doModal()
             if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
                 password = unicode(keyboard.getText(), "utf-8")
-                br = mechanize.Browser()
-                br.set_cookiejar(cj)
-                br.set_handle_gzip(True)
-                br.set_handle_robots(False)
-                br.addheaders = [('User-Agent', userAgent)]
-                content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
-                br.select_form(name="signIn")
-                br["email"] = email
-                br["password"] = password
-                br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'),
-                         ('Accept-Encoding', 'gzip, deflate'),
-                         ('Accept-Language', 'de,en-US;q=0.8,en;q=0.6'),
-                         ('Cache-Control', 'max-age=0'),
-                         ('Connection', 'keep-alive'),
-                         ('Content-Type', 'application/x-www-form-urlencoded'),
-                         ('User-Agent', userAgent),
-                         ('Upgrade-Insecure-Requests', '1')]
-                br.submit()
-                resp = br.response().read()
-                content = unicode(resp, "utf-8")
-                while 'auth-mfa-form' in content :
-                    soup = parseHTML(content)
-                    log('MFA form')
-                    if 'auth-mfa-form' in content:
-                        msg = soup.find('form', attrs={'id': 'auth-mfa-form'})
-                        msgtxt = msg.p.renderContents().strip()
-                        kb = xbmc.Keyboard('', msgtxt)
-                        kb.doModal()
-                        if kb.isConfirmed() and kb.getText():
-                            xbmc.executebuiltin('ActivateWindow(busydialog)')
-                            br.select_form(nr=0)
-                            br['otpCode'] = kb.getText()
-                        else:
-                            return "none"
-                    br.submit()
-                    resp = br.response().read()
-                    content = unicode(resp, "utf-8")
-                    soup = parseHTML(content)
-                    xbmc.executebuiltin('Dialog.Close(busydialog)')
-                content = content.replace("\\","")
-                captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
-                if captcha_match:
-                    log("Captcha required!")
-                    return "captcha_req"
-                match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(content)
-                if match:
-                    addon.setSetting('csrf_tsToken', match[0])
-                    log(match[0])
-                match = re.compile('"csrf_rnd":"(.+?)"', re.DOTALL).findall(content)
-                if match:
-                    addon.setSetting('csrf_rndToken', match[0])
-                    log(match[0])
-                match = re.compile('"csrf_token":"(.+?)"', re.DOTALL).findall(content)
-                if match:
-                    addon.setSetting('csrf_Token', match[0])
-                    log(match[0])
-                cj.save(cookieFile, ignore_discard=True, ignore_expires=True)
-                for cookie in cj:
-                    if cookie.name == "ubid-acbde":
-                        dev_id = cookie.value.replace("-", "")
-                        addon.setSetting('req_dev_id', dev_id)
-                content = getUnicodePage(urlMainS)
-                customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(content)
-                if customer_match:
-                    addon.setSetting('customerID', customer_match[0])
-                    log(customer_match[0])
+        br = mechanize.Browser()
+        br.set_cookiejar(cj)
+        br.set_handle_gzip(True)
+        br.set_handle_robots(False)
+        br.addheaders = [('User-Agent', userAgent)]
+        content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
+        br.select_form(name="signIn")
+        br["email"] = email
+        br["password"] = password
+        br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'),
+                 ('Accept-Encoding', 'gzip, deflate'),
+                 ('Accept-Language', 'de,en-US;q=0.8,en;q=0.6'),
+                 ('Cache-Control', 'max-age=0'),
+                 ('Connection', 'keep-alive'),
+                 ('Content-Type', 'application/x-www-form-urlencoded'),
+                 ('User-Agent', userAgent),
+                 ('Upgrade-Insecure-Requests', '1')]
+        br.submit()
+        resp = br.response().read()
+        content = unicode(resp, "utf-8")
+        while 'auth-mfa-form' in content :
+            soup = parseHTML(content)
+            log('MFA form')
+            if 'auth-mfa-form' in content:
+                msg = soup.find('form', attrs={'id': 'auth-mfa-form'})
+                msgtxt = msg.p.renderContents().strip()
+                kb = xbmc.Keyboard('', msgtxt)
+                kb.doModal()
+                if kb.isConfirmed() and kb.getText():
+                    xbmc.executebuiltin('ActivateWindow(busydialog)')
+                    br.select_form(nr=0)
+                    br['otpCode'] = kb.getText()
+                else:
+                    return "none"
+            br.submit()
+            resp = br.response().read()
+            content = unicode(resp, "utf-8")
+            soup = parseHTML(content)
+            xbmc.executebuiltin('Dialog.Close(busydialog)')
+        content = content.replace("\\","")
+        captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
+        if captcha_match:
+            log("Captcha required!")
+            return "captcha_req"
+        match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(content)
+        if match:
+            addon.setSetting('csrf_tsToken', match[0])
+            log(match[0])
+        match = re.compile('"csrf_rnd":"(.+?)"', re.DOTALL).findall(content)
+        if match:
+            addon.setSetting('csrf_rndToken', match[0])
+            log(match[0])
+        match = re.compile('"csrf_token":"(.+?)"', re.DOTALL).findall(content)
+        if match:
+            addon.setSetting('csrf_Token', match[0])
+            log(match[0])
+        cj.save(cookieFile, ignore_discard=True, ignore_expires=True)
+        for cookie in cj:
+            if cookie.name == "ubid-acbde":
+                dev_id = cookie.value.replace("-", "")
+                addon.setSetting('req_dev_id', dev_id)
+        content = getUnicodePage(urlMainS)
+        customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(content)
+        if customer_match:
+            addon.setSetting('customerID', customer_match[0])
+            log(customer_match[0])
         signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
         if is_prime_expression in content: #
             return "prime"
@@ -736,6 +900,16 @@ def addDir(name, url, mode, iconimage, context_entries=[]):
     liz.setProperty("fanart_image", defaultFanart)
     if len(context_entries) > 0:
         liz.addContextMenuItems(context_entries)
+    ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
+    return ok
+
+
+def addDirAlbum(name, url, mode, iconimage, Artist, Album):
+    u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(Artist.encode("utf8"))+"&album="+urllib.quote_plus(Album.encode("utf8"))
+    ok = True
+    liz = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=iconimage)
+    liz.setInfo(type="music", infoLabels={"title": name})
+    liz.setProperty("fanart_image", defaultFanart)
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
 
@@ -865,6 +1039,10 @@ if os.path.exists(cookieFile):
         listOwnPlaylists()
     elif mode == 'showPlaylistContent':
         showPlaylistContent()
+    elif mode == 'listOwnAlbums':
+        listOwnAlbums()
+    elif mode == 'showAlbumContent':
+        showAlbumContent(g_artist, g_album)
     else:
         index()
 else:
