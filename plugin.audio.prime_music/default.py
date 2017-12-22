@@ -477,7 +477,7 @@ def listOwnAlbums():
         albumAsin=re.compile('"albumAsin":"(.+?)"').findall(entry)
         thumbUrl = videoimage.GetImage(albumAsin[0],listIcon[0])
         if listTitle:
-            addDirAlbum(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", thumbUrl, sortArtist[0], sortTitle[0] )
+            addDir(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", thumbUrl, sortArtist[0], sortTitle[0] )
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
@@ -485,18 +485,7 @@ def listOwnAlbums():
 
 
 def albumPostUnicodePage(url, playlistId = ""):
-    br = mechanize.Browser()
-    br.set_cookiejar(cj)
-    br.set_handle_gzip(True)
-    br.set_handle_robots(False)
-    br.addheaders = [('User-Agent', userAgent),
-                ('X-Requested-With', 'XMLHttpRequest'),
-                ('Accept-Encoding', 'gzip, deflate'),
-                ('Content-Type', 'application/x-www-form-urlencoded'),
-                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
-                ('csrf-token', addon.getSetting('csrf_Token')),
-                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
-                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    br = prepareMechanizeBrowser()
     resp = ''
     content = ''
     postDict = {
@@ -578,18 +567,7 @@ def showAlbumContent(ArtistName, AlbumName):
 
 
 def albumTracksPostUnicodePage(url, artist, title):
-    br = mechanize.Browser()
-    br.set_cookiejar(cj)
-    br.set_handle_gzip(True)
-    br.set_handle_robots(False)
-    br.addheaders = [('User-Agent', userAgent),
-                ('X-Requested-With', 'XMLHttpRequest'),
-                ('Accept-Encoding', 'gzip, deflate'),
-                ('Content-Type', 'application/x-www-form-urlencoded'),
-                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
-                ('csrf-token', addon.getSetting('csrf_Token')),
-                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
-                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    br = prepareMechanizeBrowser()
     resp = ''
     content = ''
     postDict = {
@@ -631,18 +609,7 @@ def albumTracksPostUnicodePage(url, artist, title):
 
 
 def playlistPostUnicodePage(url, playlistId = ""):
-    br = mechanize.Browser()
-    br.set_cookiejar(cj)
-    br.set_handle_gzip(True)
-    br.set_handle_robots(False)
-    br.addheaders = [('User-Agent', userAgent),
-                ('X-Requested-With', 'XMLHttpRequest'),
-                ('Accept-Encoding', 'gzip, deflate'),
-                ('Content-Type', 'application/x-www-form-urlencoded'),
-                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
-                ('csrf-token', addon.getSetting('csrf_Token')),
-                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
-                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    br = prepareMechanizeBrowser()
     resp = ''
     content = ''
     data = "maxResults=100&Operation=getPlaylists&caller=getServerListSongs&albumArtUrlsRedirects=false&albumArtUrlsSizeList.member.1=LARGE&trackColumns.member.1=albumAsin&trackColumns.member.2=artistAsin&trackColumns.member.3=albumArtistName&trackColumns.member.4=albumName&trackColumns.member.5=artistName&trackColumns.member.6=assetType&trackColumns.member.7=duration&trackColumns.member.8=objectId&trackColumns.member.9=sortAlbumArtistName&trackColumns.member.10=sortAlbumName&trackColumns.member.11=sortArtistName&trackColumns.member.12=title&trackColumns.member.13=asin&trackColumns.member.14=primeStatus&trackColumns.member.15=status&trackColumns.member.16=extension&trackColumns.member.17=purchased&trackColumns.member.18=uploaded&trackColumns.member.19=instantImport&trackColumns.member.20=albumCoverImageLarge&ContentType=JSON&customerInfo.customerId=" + addon.getSetting('customerID') + "&customerInfo.deviceId=" + addon.getSetting('req_dev_id') + "&customerInfo.deviceType=A16ZV8BU3SN1N3"
@@ -900,24 +867,16 @@ def parameters_string_to_dict(parameters):
     return paramDict
 
 
-def addDir(name, url, mode, iconimage, context_entries=[]):
+def addDir(name, url, mode, iconimage, Artist=None, Album=None):
     u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))
     ok = True
     liz = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name})
     liz.setProperty("fanart_image", defaultFanart)
-    if len(context_entries) > 0:
-        liz.addContextMenuItems(context_entries)
-    ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
-    return ok
-
-
-def addDirAlbum(name, url, mode, iconimage, Artist, Album):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url.encode("utf8"))+"&mode="+str(mode)+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(Artist.encode("utf8"))+"&album="+urllib.quote_plus(Album.encode("utf8"))
-    ok = True
-    liz = xbmcgui.ListItem(name, iconImage=icon, thumbnailImage=iconimage)
-    liz.setInfo(type="music", infoLabels={"title": name})
-    liz.setProperty("fanart_image", defaultFanart)
+    if Artist:
+        u+="&artist="+urllib.quote_plus(Artist.encode("utf8"))
+    if Album:
+        u+="&album="+urllib.quote_plus(Album.encode("utf8"))
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz, isFolder=True)
     return ok
 
@@ -936,6 +895,22 @@ def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album
     liz.setProperty('IsPlayable', 'true')
     ok = xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=u, listitem=liz)
     return ok
+
+
+def prepareMechanizeBrowser():
+    br = mechanize.Browser()
+    br.set_cookiejar(cj)
+    br.set_handle_gzip(True)
+    br.set_handle_robots(False)
+    br.addheaders = [('User-Agent', userAgent),
+                ('X-Requested-With', 'XMLHttpRequest'),
+                ('Accept-Encoding', 'gzip, deflate'),
+                ('Content-Type', 'application/x-www-form-urlencoded'),
+                ('Accept', 'application/json, text/javascript, */*; q=0.01'),
+                ('csrf-token', addon.getSetting('csrf_Token')),
+                ('csrf-rnd', addon.getSetting('csrf_rndToken')),
+                ('csrf-ts', addon.getSetting('csrf_tsToken'))]
+    return br
 
 
 """
