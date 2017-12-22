@@ -465,6 +465,7 @@ def listOwnPlaylists():
 def listOwnAlbums():
     content = albumPostUnicodePage('https://music.amazon.de/cirrus/')
     spl = content.split("albumArtLocator")
+    videoimage = ScrapeUtils.VideoImage()
     for i in range(1, len(spl), 1):
         entry = spl[i]
         listId=re.compile(':"(.+?)"').findall(entry)
@@ -472,9 +473,11 @@ def listOwnAlbums():
         listTitle=re.compile('"albumName":"(.+?)"').findall(entry)
         sortArtist=re.compile('"sortAlbumArtistName":"(.+?)"').findall(entry)
         sortTitle=re.compile('"sortAlbumName":"(.+?)"').findall(entry)
-        listIcon=re.compile('"albumCoverImageMedium":"(.+?)"').findall(entry)
+        listIcon=re.compile('"albumCoverImageFull":"(.+?)"').findall(entry)
+        albumAsin=re.compile('"albumAsin":"(.+?)"').findall(entry)
+        thumbUrl = videoimage.GetImage(albumAsin[0],listIcon[0])
         if listTitle:
-            addDirAlbum(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", listIcon[0], sortArtist[0], sortTitle[0] )
+            addDirAlbum(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", thumbUrl, sortArtist[0], sortTitle[0] )
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
@@ -503,7 +506,7 @@ def albumPostUnicodePage(url, playlistId = ""):
         'searchCriteria.member.1.attributeValue' : 'AVAILABLE',
         'searchCriteria.member.2.attributeName' : 'trackStatus',
         'searchCriteria.member.2.comparisonType' : 'IS_NULL',
-        'albumArtUrlsSizeList.member.1' : 'MEDIUM',
+        'albumArtUrlsSizeList.member.1' : 'FULL',
         'selectedColumns.member.1' : 'albumArtistName',
         'selectedColumns.member.2' : 'albumName',
         'selectedColumns.member.3' : 'artistName',
@@ -512,7 +515,7 @@ def albumPostUnicodePage(url, playlistId = ""):
         'selectedColumns.member.6' : 'sortAlbumArtistName',
         'selectedColumns.member.7' : 'sortAlbumName',
         'selectedColumns.member.8' : 'sortArtistName',
-        'selectedColumns.member.9' : 'albumCoverImageMedium',
+        'selectedColumns.member.9' : 'albumCoverImageFull',
         'selectedColumns.member.10' : 'albumAsin',
         'selectedColumns.member.11' : 'artistAsin',
         'selectedColumns.member.12' : 'gracenoteId',
@@ -542,6 +545,12 @@ def showAlbumContent(ArtistName, AlbumName):
     artist = ArtistName
     title = AlbumName
     content = albumTracksPostUnicodePage('https://music.amazon.de/cirrus/', artist, title) 
+
+    videoimage = ScrapeUtils.VideoImage()
+    listIcon=re.compile('"albumCoverImageFull":"(.+?)"').search(content).group(1)
+    albumAsin=re.compile('"albumAsin":"(.+?)"').search(content).group(1)
+    thumbUrl = videoimage.GetImage(albumAsin,listIcon)
+
     obj = json.loads(content)
     root = obj['selectTrackMetadataResponse']['selectTrackMetadataResult']
     tracks = root['trackInfoList']
@@ -556,12 +565,11 @@ def showAlbumContent(ArtistName, AlbumName):
         asin =''
         if('asin' in meta):
             asin = meta['asin']
-        icon = meta['albumCoverImageFull']
 
         if('primeStatus' in meta):
-            addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, icon, "", "", artistName, albumName)
+            addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
         else:
-            addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, icon, "", "", artistName, albumName, "")
+            addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:

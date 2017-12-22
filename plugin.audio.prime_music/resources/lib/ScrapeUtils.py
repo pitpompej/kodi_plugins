@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 from urlparse import urlparse
+import urllib
 import xbmc
 import xbmcaddon
 import os
@@ -29,11 +30,9 @@ class VideoImage():
         imgsrc = imgsrc[:imgsrc.rfind("/")+1] + imgfile
         return imgsrc
 
-    """
+    
     def ImageDownload(self, asin, imgsrc):
-        f = open(os.path.join(self.cacheFolder, asin + ".jpg"), "wb")
-        f.write(WebContent().DownloadFile(self.ImageFile(imgsrc)))
-        f.close()
+        urllib.urlretrieve(imgsrc, os.path.join(self.cacheFolder, asin + ".jpg")) 
 
 
     def HasCachedImage(self, asin):
@@ -47,4 +46,4 @@ class VideoImage():
         if not self.HasCachedImage(asin):
             self.ImageDownload(asin, imgsrc)
         return os.path.join(self.cacheFolder, asin + ".jpg")
-    """
+    
