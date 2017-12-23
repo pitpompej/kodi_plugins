@@ -83,7 +83,7 @@ def index():
         addDir(translation(30016), "albums", 'search', "")
         addDir(translation(30017), "songs", 'search', "")
         addDir(translation(30010), "playlists", 'listOwnPlaylists', "")
-        addDir(translation(30011), "myAlbums", 'listOwnAlbums', "")
+        addDir(translation(30011), "", 'listOwnAlbums', "")
         xbmcplugin.endOfDirectory(pluginhandle)
     elif loginResult == "captcha_req":
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
@@ -413,6 +413,7 @@ def showPlaylistContent():
     content = playlistPostUnicodePage('https://music.amazon.de/cirrus/', url)
     debug(content)
     obj = json.loads(content)
+    videoimage = ScrapeUtils.VideoImage()
     root = obj['getPlaylistsResponse']['getPlaylistsResult']['playlistInfoList'][0]
     tracks = root['playlistEntryList']
     for track in tracks:
@@ -426,8 +427,10 @@ def showPlaylistContent():
             asin = meta['asin']
         objectId = meta['objectId']
         icon = ''
-        if('albumCoverImageLarge' in meta):
-            icon = meta['albumCoverImageLarge']
+        albumAsin = meta['albumAsin']
+        if('albumCoverImageFull' in meta):
+            listIcon = meta['albumCoverImageFull']
+            icon = videoimage.GetImage(albumAsin,listIcon)
         if songTitle:
             if('primeStatus' in meta):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
@@ -463,7 +466,7 @@ def listOwnPlaylists():
     xbmc.sleep(100)
 
 def listOwnAlbums():
-    content = albumPostUnicodePage('https://music.amazon.de/cirrus/')
+    content = albumPostUnicodePage('https://music.amazon.de/cirrus/', url)
     spl = content.split("albumArtLocator")
     videoimage = ScrapeUtils.VideoImage()
     for i in range(1, len(spl), 1):
@@ -478,13 +481,16 @@ def listOwnAlbums():
         thumbUrl = videoimage.GetImage(albumAsin[0],listIcon[0])
         if listTitle:
             addDir(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", thumbUrl, sortArtist[0], sortTitle[0] )
+    next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
+    if next_available and next_available[0].isdigit():
+        addDir(translation(30001), "&nextResultsToken=" + next_available[0], "listOwnAlbums", "")
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 
-def albumPostUnicodePage(url, playlistId = ""):
+def albumPostUnicodePage(url, nextSite = ""):
     br = prepareMechanizeBrowser()
     resp = ''
     content = ''
@@ -509,7 +515,7 @@ def albumPostUnicodePage(url, playlistId = ""):
         'selectedColumns.member.11' : 'artistAsin',
         'selectedColumns.member.12' : 'gracenoteId',
         'selectedColumns.member.13' : 'physicalOrderId',
-        'maxResults' : '100',
+        'maxResults' : '50',
         'Operation' : 'searchLibrary',
         'caller' : 'getAllDataByMetaType',
         'sortCriteriaList.member.1.sortColumn' : 'sortAlbumArtistName',
@@ -522,6 +528,8 @@ def albumPostUnicodePage(url, playlistId = ""):
         'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
         }
     params = urllib.urlencode(postDict)
+    if nextSite:
+        params += nextSite
     try:
         resp = br.open(url, params)
         content = unicode(resp.read(), "utf-8")
@@ -612,11 +620,49 @@ def playlistPostUnicodePage(url, playlistId = ""):
     br = prepareMechanizeBrowser()
     resp = ''
     content = ''
-    data = "maxResults=100&Operation=getPlaylists&caller=getServerListSongs&albumArtUrlsRedirects=false&albumArtUrlsSizeList.member.1=LARGE&trackColumns.member.1=albumAsin&trackColumns.member.2=artistAsin&trackColumns.member.3=albumArtistName&trackColumns.member.4=albumName&trackColumns.member.5=artistName&trackColumns.member.6=assetType&trackColumns.member.7=duration&trackColumns.member.8=objectId&trackColumns.member.9=sortAlbumArtistName&trackColumns.member.10=sortAlbumName&trackColumns.member.11=sortArtistName&trackColumns.member.12=title&trackColumns.member.13=asin&trackColumns.member.14=primeStatus&trackColumns.member.15=status&trackColumns.member.16=extension&trackColumns.member.17=purchased&trackColumns.member.18=uploaded&trackColumns.member.19=instantImport&trackColumns.member.20=albumCoverImageLarge&ContentType=JSON&customerInfo.customerId=" + addon.getSetting('customerID') + "&customerInfo.deviceId=" + addon.getSetting('req_dev_id') + "&customerInfo.deviceType=A16ZV8BU3SN1N3"
+    postDict = {
+        'maxResults' : '100',
+        'Operation' : 'getPlaylists',
+        'caller' : 'getServerListSongs',
+        'albumArtUrlsRedirects' : 'false',
+        'albumArtUrlsSizeList.member.1' : 'FULL',
+        'trackColumns.member.1' : 'albumAsin',
+        'trackColumns.member.2' : 'artistAsin',
+        'trackColumns.member.3' : 'albumArtistName',
+        'trackColumns.member.4' : 'albumName',
+        'trackColumns.member.5' : 'artistName',
+        'trackColumns.member.6' : 'assetType',
+        'trackColumns.member.7' : 'duration',
+        'trackColumns.member.8' : 'objectId',
+        'trackColumns.member.9' : 'sortAlbumArtistName',
+        'trackColumns.member.10' : 'sortAlbumName',
+        'trackColumns.member.11' : 'sortArtistName',
+        'trackColumns.member.12' : 'title',
+        'trackColumns.member.13' : 'asin',
+        'trackColumns.member.14' : 'primeStatus',
+        'trackColumns.member.15' : 'status',
+        'trackColumns.member.16' : 'extension',
+        'trackColumns.member.17' : 'purchased',
+        'trackColumns.member.18' : 'uploaded',
+        'trackColumns.member.19' : 'instantImport',
+        'trackColumns.member.20' : 'albumCoverImageFull',
+        'ContentType' : 'JSON',
+        'customerInfo.customerId' : addon.getSetting('customerID'),
+        'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
+        'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
+        }
     if playlistId:
-        data += "&includeTrackMetadata=true&trackCountOnly=false&playlistIdList.member.1=" + playlistId
+        postDict['includeTrackMetadata'] = 'true'
+        postDict['trackCountOnly'] = 'false'
     else:
-        data += "&includeTrackMetadata=false&trackCountOnly=true&playlistIdList=&nextResultsToken="
+        postDict['includeTrackMetadata'] = 'false'
+        postDict['trackCountOnly'] = 'true'
+        postDict['playlistIdList'] = '' 
+        postDict['nextResultsToken'] = ''
+    data = urllib.urlencode(postDict)
+    if playlistId:
+        data += "&playlistIdList.member.1=" + playlistId
+    log(data)
     try:
         resp = br.open(url, data)
         content = unicode(resp.read(), "utf-8")
