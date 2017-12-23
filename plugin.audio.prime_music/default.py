@@ -426,12 +426,13 @@ def showPlaylistContent():
         if('asin' in meta):
             asin = meta['asin']
         objectId = meta['objectId']
+        status = meta['status']
         icon = ''
         albumAsin = meta['albumAsin']
         if('albumCoverImageFull' in meta):
             listIcon = meta['albumCoverImageFull']
             icon = videoimage.GetImage(albumAsin,listIcon)
-        if songTitle:
+        if songTitle and status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
             else:
@@ -542,7 +543,6 @@ def showAlbumContent(ArtistName, AlbumName):
     artist = ArtistName
     title = AlbumName
     content = albumTracksPostUnicodePage('https://music.amazon.de/cirrus/', artist, title) 
-
     videoimage = ScrapeUtils.VideoImage()
     listIcon=re.compile('"albumCoverImageFull":"(.+?)"').search(content).group(1)
     albumAsin=re.compile('"albumAsin":"(.+?)"').search(content).group(1)
@@ -558,15 +558,15 @@ def showAlbumContent(ArtistName, AlbumName):
         artistName = meta['albumArtistName']
         albumName = meta['albumName']
         title = meta['title']
-
+        status = meta['status']
         asin =''
         if('asin' in meta):
             asin = meta['asin']
-
-        if('primeStatus' in meta):
-            addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
-        else:
-            addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
+        if status == "AVAILABLE":
+            if('primeStatus' in meta):
+                addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
+            else:
+                addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
