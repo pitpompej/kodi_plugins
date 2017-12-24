@@ -21,4 +21,9 @@
         <setting label="30116" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCache)"/>
         <setting label="30115" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deleteCookies)"/>
     </category>
+    <category label="30210">
+        <setting id="email" type="text" visible="true" label="30211" default=""/>
+        <setting label="30212" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=storePassword)"/>
+        <setting label="30213" type="action" action="RunPlugin(plugin://plugin.audio.prime_music/?mode=deletePassword)"/>
+    </category>
 </settings>

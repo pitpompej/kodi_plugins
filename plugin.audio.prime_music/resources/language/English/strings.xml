@@ -51,4 +51,8 @@
   <string id="30121">Forced views</string>
   <string id="30201">General</string>
   <string id="30203">Advanced</string>
+  <string id="30210">Credentials</string>
+  <string id="30211">E-Mail</string>
+  <string id="30212">Store password</string>
+  <string id="30213">Delete password</string>
 </strings>

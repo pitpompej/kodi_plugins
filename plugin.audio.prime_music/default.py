@@ -16,7 +16,6 @@ import string
 import random
 import shutil
 import subprocess
-import base64
 import xbmcplugin
 import xbmcgui
 import xbmcaddon
@@ -25,6 +24,10 @@ from HTMLParser import HTMLParser
 import resources.lib.ScrapeUtils as ScrapeUtils
 from BeautifulSoup import BeautifulSoup
 import ssl
+from pyDes import *
+import uuid
+from base64 import b64encode, b64decode
+
 
 addon = xbmcaddon.Addon()
 addonID = addon.getAddonInfo('id')
@@ -662,7 +665,7 @@ def playlistPostUnicodePage(url, playlistId = ""):
     data = urllib.urlencode(postDict)
     if playlistId:
         data += "&playlistIdList.member.1=" + playlistId
-    log(data)
+    debug(data)
     try:
         resp = br.open(url, data)
         content = unicode(resp.read(), "utf-8")
@@ -760,6 +763,64 @@ def search(type):
 #                listShows(urlMain+"/mn/search/ajax/?_encoding=UTF8&url=node%3D3356011031&field-keywords="+search_string)
 
 
+def getmac():
+    mac = uuid.getnode()
+    if (mac >> 40) % 2:
+        mac = node()
+    return uuid.uuid5(uuid.NAMESPACE_DNS, str(mac)).bytes
+
+
+def encode(data):
+    k = triple_des(getmac(), CBC, b'\0\0\0\0\0\0\0\0', padmode=PAD_PKCS5)
+    d = k.encrypt(data)
+    return b64encode(d)
+
+
+def decode(data):
+    if not data:
+        return ''
+    k = triple_des(getmac(), CBC, b'\0\0\0\0\0\0\0\0', padmode=PAD_PKCS5)
+    d = k.decrypt(b64decode(data))
+    return d
+
+
+def writeConfig(cfile, value):
+    cfgfile = os.path.join(addonUserDataFolder, cfile)
+    if not xbmcvfs.exists(addonUserDataFolder):
+        xbmcvfs.mkdirs(addonUserDataFolder)
+    f = xbmcvfs.File(cfgfile, 'w')
+    f.write(value.__str__())
+    f.close()
+    return True
+
+
+def getConfig(cfile, value=''):
+    cfgfile = os.path.join(addonUserDataFolder, cfile)
+    if xbmcvfs.exists(cfgfile):
+        f = xbmcvfs.File(cfgfile, 'r')
+        value = f.read()
+        f.close()
+    return value
+
+
+def requestPassword():
+    password = ''
+    keyboard = xbmc.Keyboard('', translation(30091), True)
+    keyboard.setHiddenInput(True)
+    keyboard.doModal()
+    if keyboard.isConfirmed() and keyboard.getText():
+        password = keyboard.getText()
+    return password
+
+def storePassword():
+    password = requestPassword()
+    if password:
+        writeConfig('foo_bar', encode(password))
+
+def deletePassword():
+    writeConfig('foo_bar', '')
+
+
 def login(content = None, statusOnly = False):
     is_prime_expression = "config.isPrimeMember',true"
     if content is None:
@@ -775,19 +836,19 @@ def login(content = None, statusOnly = False):
         deleteCookies()
         content = ""
 
-        email=addon.getSetting('email')
-        password=addon.getSetting('password')
+        email = addon.getSetting('email')
+        pw = decode(getConfig('foo_bar'))
+        if pw:
+            password = unicode(pw, "utf-8")
+        else:
+            password = pw
         if not email:
             keyboard = xbmc.Keyboard('', translation(30090))
             keyboard.doModal()
             if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
                 email = unicode(keyboard.getText(), "utf-8")
         if not password:
-            keyboard = xbmc.Keyboard('', translation(30091), True)
-            keyboard.setHiddenInput(True)
-            keyboard.doModal()
-            if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
-                password = unicode(keyboard.getText(), "utf-8")
+            password = unicode(requestPassword(), "utf-8")
         br = mechanize.Browser()
         br.set_cookiejar(cj)
         br.set_handle_gzip(True)
@@ -1072,6 +1133,10 @@ if os.path.exists(cookieFile):
         listOwnAlbums()
     elif mode == 'showAlbumContent':
         showAlbumContent(g_artist, g_album)
+    elif mode == 'storePassword':
+        storePassword()
+    elif mode == 'deletePassword':
+        deletePassword()
     else:
         index()
 else:
