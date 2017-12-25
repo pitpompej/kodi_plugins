@@ -1,3 +1,7 @@
+0.8.0
+- added amazon music my-albums section, thx to mkoenig2203 for contribution
+- added credential storing
+- fixed thumbnail caching for my-playlist view
 0.7.1
 - added further playback item info to provide osmosis plugin, thx @ gismo112
 - clean up
