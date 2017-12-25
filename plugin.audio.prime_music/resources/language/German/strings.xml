@@ -55,4 +55,7 @@
   <string id="30211">E-Mail</string>
   <string id="30212">Passwort speichern</string>
   <string id="30213">Passwort löschen</string>
+  <string id="30220">Warnung: Zugangsdaten werden auf den Platte gespeichert.</string>
+  <string id="30221">Falls jemand auf diese Zugriff erlangt könnten sie ausgelesen werden.</string>
+  <string id="30222">Daher wird vor dem Speichern der Zugangsdaten abgeraten!</string>
 </strings>

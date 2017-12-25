@@ -55,4 +55,7 @@
   <string id="30211">E-Mail</string>
   <string id="30212">Store password</string>
   <string id="30213">Delete password</string>
+  <string id="30220">Warning: Credentials are stored on the devices storage.</string>
+  <string id="30221">Anybody who gain access to that device might read this data.</string>
+  <string id="30222">Therefore it is strongly recommended not to store the credentials!</string>
 </strings>
