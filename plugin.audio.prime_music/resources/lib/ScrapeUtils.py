@@ -20,6 +20,8 @@ class VideoImage():
         addon = xbmcaddon.Addon(id=addonID)
         addonUserDataFolder = xbmc.translatePath("special://profile/addon_data/"+addonID)
         self.cacheFolder = os.path.join(addonUserDataFolder, "cache", "covers")
+        if not os.path.exists(self.cacheFolder):
+            os.makedirs(self.cacheFolder)
         pass
 
     def ImageFile(self, imgsrc):

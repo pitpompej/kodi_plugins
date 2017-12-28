@@ -1,3 +1,5 @@
+0.8.1
+- fixed bug resulting in missing cache cover folder on initial installation
 0.8.0
 - added amazon music my-albums section, thx to mkoenig2203 for contribution
 - added credential storing
