@@ -739,9 +739,9 @@ def showAlbumContent(ArtistName, AlbumName):
             asin = meta['asin']
         if status == "AVAILABLE":
             if('primeStatus' in meta):
-                addLink(artistName + " - " + albumName + " - " + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
+                addLink(title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
             else:
-                addLink(artistName + " - " + albumName + " - " + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
+                addLink(title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
