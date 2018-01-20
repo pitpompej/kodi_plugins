@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import urllib
 import urlparse
 import urllib2
-#import requests
+import requests
 import socket
 import mechanize
 import cookielib
@@ -87,6 +87,8 @@ def index():
         addDir(translation(30017), "songs", 'search', "")
         addDir(translation(30010), "playlists", 'listOwnPlaylists', "")
         addDir(translation(30011), "", 'listOwnAlbums', "")
+        addDir(translation(30012), "", 'listFollowed', "")
+        addDir(translation(30013), "", 'listRecentlyPlayed', "")
         xbmcplugin.endOfDirectory(pluginhandle)
     elif loginResult == "captcha_req":
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
@@ -434,7 +436,8 @@ def showPlaylistContent():
         albumAsin = meta['albumAsin']
         if('albumCoverImageFull' in meta):
             listIcon = meta['albumCoverImageFull']
-            icon = videoimage.GetImage(albumAsin,listIcon)
+            cacheIdentifyer = albumAsin if albumAsin else objectId
+            icon = videoimage.GetImage(cacheIdentifyer,listIcon)
         if songTitle and status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
@@ -482,7 +485,15 @@ def listOwnAlbums():
         sortTitle=re.compile('"sortAlbumName":"(.+?)"').findall(entry)
         listIcon=re.compile('"albumCoverImageFull":"(.+?)"').findall(entry)
         albumAsin=re.compile('"albumAsin":"(.+?)"').findall(entry)
-        thumbUrl = videoimage.GetImage(albumAsin[0],listIcon[0])
+        if albumAsin[0]:
+            cacheIdentifyer = albumAsin[0]
+        else:
+            objectId = re.compile('"objectId":"(.+?)"').findall(entry)
+            cacheIdentifyer = objectId[0]
+        try:
+            thumbUrl = videoimage.GetImage(cacheIdentifyer,listIcon[0])
+        except:
+            thumbUrl = ''
         if listTitle:
             addDir(listArtist[0] + " - " + listTitle[0], listId[0] + "&nextResultsToken=" ,"showAlbumContent", thumbUrl, sortArtist[0], sortTitle[0] )
     next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
@@ -493,6 +504,160 @@ def listOwnAlbums():
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
+def showListFollowed():
+    head = { 'User-Agent' : userAgent,
+             'X-Requested-With' : 'XMLHttpRequest',
+             'X-Amz-Target' : 'com.amazon.musicplaylist.model.MusicPlaylistService.getFollowedPlaylistsInLibrary',
+             'Accept-Encoding' : 'gzip,deflate,br',
+             'Accept-Language' : 'de,en-US;q=0.7,en;q=0.3',
+             'Content-Encoding' : 'amz-1.0',
+             'Referer' : 'https://music.amazon.de/home',
+             'Accept' : '*/*',
+             'content-type' : 'application/json',
+             'csrf-token' : addon.getSetting('csrf_Token'),
+             'csrf-rnd' : addon.getSetting('csrf_rndToken'),
+             'csrf-ts' : addon.getSetting('csrf_tsToken') }
+
+    url = 'https://music.amazon.de/EU/api/playlists/'
+
+    data ='{'
+    data = data + '\"pageSize\":20,'
+    data = data + '\"entryOffset\":0,'
+    data = data + '\"optIntoSharedPlaylists\":true,'
+    data = data + '\"deviceId\":\"' + addon.getSetting('req_dev_id') + '\",'
+    data = data + '\"deviceType\":\"A16ZV8BU3SN1N3\",'
+    data = data + '\"musicTerritory\":\"DE\",'
+    data = data + '\"customerId\":\"' + addon.getSetting('customerID') + '\"'
+    data = data + '}'
+
+    resp = requests.post(url, data, headers=head, cookies=cj)
+
+    obj = json.loads(resp.text)
+    items = obj['playlists']
+
+    for item in items:
+        asin = item['asin']
+        title = item['title']
+        desc = item['description']
+        icon = item['fourSquareImage']['url']
+
+        addDir(title, '', "lookupList&asin=" + asin, icon)
+
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
+
+def showLookupList(asin):
+
+    head = { 'User-Agent' : userAgent,
+             'X-Requested-With' : 'XMLHttpRequest',
+             'X-Amz-Target' : 'com.amazon.musicensembleservice.MusicEnsembleService.lookup',
+             'Accept-Encoding' : 'gzip,deflate,br',
+             'Accept-Language' : 'de,en-US;q=0.7,en;q=0.3',
+             'Content-Encoding' : 'amz-1.0',
+             'Referer' : 'https://music.amazon.de/playlists/' + asin,
+             'Accept' : '*/*',
+             'content-type' : 'application/json',
+             'csrf-token' : addon.getSetting('csrf_Token'),
+             'csrf-rnd' : addon.getSetting('csrf_rndToken'),
+             'csrf-ts' : addon.getSetting('csrf_tsToken') }
+
+    url = 'https://music.amazon.de/EU/api/muse/legacy/lookup'
+
+    data ='{'
+    data = data + '\"asins\":[\"' + asin + '\"],'
+    data = data + '\"features\":'
+    data = data + '[\"collectionLibraryAvailability\",'
+    data = data + '\"expandTracklist\",'
+    data = data + '\"playlistLibraryAvailability\",'
+    data = data + '\"trackLibraryAvailability\",'
+    data = data + '\"hasLyrics\"],'
+    data = data + '\"requestedContent\":\"MUSIC_SUBSCRIPTION\",'
+    data = data + '\"deviceId\":\"' + addon.getSetting('req_dev_id') + '\",'
+    data = data + '\"deviceType\":\"A16ZV8BU3SN1N3\",'
+    data = data + '\"musicTerritory\":\"DE\",'
+    data = data + '\"customerId\":\"' + addon.getSetting('customerID') + '\"'
+    data = data + '}'
+
+    resp = requests.post(url, data, headers=head, cookies=cj)
+
+    obj = json.loads(resp.text)
+    items = obj['playlistList'][0]['tracks']
+
+    for item in items:
+            asin = item['asin']
+
+            album =  item['album']['title']
+            artist = item['artist']['name']
+
+            title = item['title']
+            dura = item['duration']
+
+            icon = item['album']['image']
+
+            addLink(artist + ": " + title, "playTrack", asin, icon, "", "", artist, album)
+
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
+
+def showListRecentlyPlayed():
+
+    head = { 'User-Agent' : userAgent,
+             'X-Requested-With' : 'XMLHttpRequest',
+             'X-Amz-Target' : 'com.amazon.nimblymusicservice.NimblyMusicService.GetRecentTrackActivity',
+             'Accept-Encoding' : 'gzip,deflate,br',
+             'Accept-Language' : 'de,en-US;q=0.7,en;q=0.3',
+             'Content-Encoding' : 'amz-1.0',
+             'Referer' : 'https://music.amazon.de/recently/played',
+             'Accept' : '*/*',
+             'content-type' : 'application/json',
+             'csrf-token' : addon.getSetting('csrf_Token'),
+             'csrf-rnd' : addon.getSetting('csrf_rndToken'),
+             'csrf-ts' : addon.getSetting('csrf_tsToken') }
+
+    url = 'https://music.amazon.de/EU/api/nimbly/'
+
+    data ='{'
+    data = data + '\"activityTypeFilters\":[\"PLAYED\"],'
+    data = data + '\"lang\":\"de\",'
+    data = data + '\"deviceId\":\"' + addon.getSetting('req_dev_id') + '\",'
+    data = data + '\"deviceType\":\"A16ZV8BU3SN1N3\",'
+    data = data + '\"musicTerritory\":\"DE\",'
+    data = data + '\"customerId\":\"' + addon.getSetting('customerID') + '\"'
+    data = data + '}'
+
+    resp = requests.post(url, data, headers=head, cookies=cj)
+    debug(resp.text)
+    obj = json.loads(resp.text)
+    items = obj['recentActivityMap']['PLAYED']['recentTrackList']
+
+    for item in items:
+
+        asin = ''
+        if('asin' in item):
+            asin = item['asin']
+        coid = ''
+        if('objectId' in item):
+            coid = item['objectId']
+
+        title = item['displayName']
+
+        icon = ''
+        if('imageFull' in item):
+            icon = item['imageFull']
+
+        trackStatus = item['isUploaded']
+        status = True if ((item['isInstantImport'] == 'true') or (item['isMusicSubscription'] == 'true') or (item['isPrime'] == 'true') or (item['isPurchased'] == 'true')) else False
+        artistName = item['artistName']
+        albumName = item['albumName']
+
+        if(trackStatus == 'false'):
+            if status:
+                addLink(artistName + ": " + title, "playTrack", asin, icon, "", "", artistName, albumName)
+        else:
+            addLink(artistName + ": " + title, "playMP3Track", coid, icon, "", "", artistName, albumName, "")
+
+    xbmcplugin.endOfDirectory(pluginhandle)
+    xbmc.sleep(100)
 
 def albumPostUnicodePage(url, nextSite = ""):
     br = prepareMechanizeBrowser()
@@ -549,7 +714,14 @@ def showAlbumContent(ArtistName, AlbumName):
     videoimage = ScrapeUtils.VideoImage()
     listIcon=re.compile('"albumCoverImageFull":"(.+?)"').search(content).group(1)
     albumAsin=re.compile('"albumAsin":"(.+?)"').search(content).group(1)
-    thumbUrl = videoimage.GetImage(albumAsin,listIcon)
+    if albumAsin:
+        cacheIdentifyer = albumAsin
+    else:
+        cacheIdentifyer = re.compile('"objectId":"(.+?)"').search(content).group(1)
+    try:
+        thumbUrl = videoimage.GetImage(cacheIdentifyer,listIcon)
+    except:
+        thumbUrl = ''
 
     obj = json.loads(content)
     root = obj['selectTrackMetadataResponse']['selectTrackMetadataResult']
@@ -1137,6 +1309,12 @@ if os.path.exists(cookieFile):
         storePassword()
     elif mode == 'deletePassword':
         deletePassword()
+    elif mode == 'listFollowed':
+        showListFollowed()
+    elif mode == 'lookupList':
+        showLookupList(asin)
+    elif mode == 'listRecentlyPlayed':
+        showListRecentlyPlayed()
     else:
         index()
 else:

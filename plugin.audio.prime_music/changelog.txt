@@ -1,3 +1,6 @@
+0.9.0
+- added followed playlist section, added recently played section, thx to mkoenig2203 for contribution
+- changed album cache identifyer, using album object id when no asin available
 0.8.1
 - fixed bug resulting in missing cache cover folder on initial installation
 0.8.0
