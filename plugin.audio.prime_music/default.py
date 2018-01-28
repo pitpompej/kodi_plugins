@@ -87,6 +87,7 @@ def index():
         addDir(translation(30017), "songs", 'search', "")
         addDir(translation(30010), "playlists", 'listOwnPlaylists', "")
         addDir(translation(30011), "", 'listOwnAlbums', "")
+        addDir(translation(30014), "", 'listOwnArtists', "")
         addDir(translation(30012), "", 'listFollowed', "")
         addDir(translation(30013), "", 'listRecentlyPlayed', "")
         xbmcplugin.endOfDirectory(pluginhandle)
@@ -504,6 +505,39 @@ def listOwnAlbums():
         xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
+
+def listOwnArtists():
+    content = albumPostUnicodePage('https://music.amazon.de/cirrus/', url, True)
+    spl = content.split("albumArtLocator")
+    videoimage = ScrapeUtils.VideoImage()
+    for i in range(1, len(spl), 1):
+        entry = spl[i]
+        listId=re.compile(':"(.+?)"').findall(entry)
+        listArtist=re.compile('"artistName":"(.+?)"').findall(entry)
+        sortArtist=re.compile('"sortAlbumArtistName":"(.+?)"').findall(entry)
+        sortTitle=re.compile('"sortAlbumName":"(.+?)"').findall(entry)
+        listIcon=re.compile('"albumCoverImageFull":"(.+?)"').findall(entry)
+        albumAsin=re.compile('"albumAsin":"(.+?)"').findall(entry)
+        if albumAsin[0]:
+            cacheIdentifyer = albumAsin[0]
+        else:
+            objectId = re.compile('"objectId":"(.+?)"').findall(entry)
+            cacheIdentifyer = objectId[0]
+        try:
+            thumbUrl = videoimage.GetImage(cacheIdentifyer,listIcon[0])
+        except:
+            thumbUrl = ''
+        if listArtist:
+            addDir(listArtist[0], listId[0] + "&nextResultsToken=" ,"showArtistContent", thumbUrl, sortArtist[0] )
+    next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
+    if next_available and next_available[0].isdigit():
+        addDir(translation(30001), "&nextResultsToken=" + next_available[0], "listOwnArtists", "")
+    xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+    xbmc.sleep(100)
+
+
 def showListFollowed():
     head = { 'User-Agent' : userAgent,
              'X-Requested-With' : 'XMLHttpRequest',
@@ -659,12 +693,18 @@ def showListRecentlyPlayed():
     xbmcplugin.endOfDirectory(pluginhandle)
     xbmc.sleep(100)
 
-def albumPostUnicodePage(url, nextSite = ""):
+def albumPostUnicodePage(url, nextSite = "", searchArtist = False):
     br = prepareMechanizeBrowser()
+    if searchArtist:
+        search_ret_type = 'ARTISTS'
+        album_sort_column = 'sortArtistName'
+    else:
+        search_ret_type = 'ALBUMS'
+        album_sort_column = 'sortAlbumArtistName'
     resp = ''
     content = ''
     postDict = {
-        'searchReturnType' : 'ALBUMS',
+        'searchReturnType' : search_ret_type,
         'searchCriteria.member.1.attributeName' : 'status',
         'searchCriteria.member.1.comparisonType' : 'EQUALS',
         'searchCriteria.member.1.attributeValue' : 'AVAILABLE',
@@ -687,15 +727,16 @@ def albumPostUnicodePage(url, nextSite = ""):
         'maxResults' : '50',
         'Operation' : 'searchLibrary',
         'caller' : 'getAllDataByMetaType',
-        'sortCriteriaList.member.1.sortColumn' : 'sortAlbumArtistName',
+        'sortCriteriaList.member.1.sortColumn' : album_sort_column,
         'sortCriteriaList.member.1.sortType' : 'ASC',
-        'sortCriteriaList.member.2.sortColumn' : 'sortAlbumName',
-        'sortCriteriaList.member.2.sortType' : 'ASC',
         'ContentType' : 'JSON',
         'customerInfo.customerId' : addon.getSetting('customerID'),
         'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
         'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
         }
+    if not searchArtist:
+        postDict['sortCriteriaList.member.2.sortColumn'] = 'sortAlbumName'
+        postDict['sortCriteriaList.member.2.sortType'] = 'ASC'
     params = urllib.urlencode(postDict)
     if nextSite:
         params += nextSite
@@ -789,6 +830,93 @@ def albumTracksPostUnicodePage(url, artist, title):
     except urllib2.HTTPError as e :
         log(e.read())
     return content
+
+
+def showArtistContent(ArtistName ):
+    artist = ArtistName
+    content = artistTracksPostUnicodePage('https://music.amazon.de/cirrus/', artist )
+    videoimage = ScrapeUtils.VideoImage()
+
+    obj = json.loads(content)
+    root = obj['selectTrackMetadataResponse']['selectTrackMetadataResult']
+    tracks = root['trackInfoList']
+    for track in tracks:
+        coid = track['adriveId']
+        meta = track['metadata']
+
+        listIcon = meta['albumCoverImageFull']
+        albumAsin = meta['albumAsin']
+        if albumAsin:
+            cacheIdentifyer = albumAsin
+        else:
+            cacheIdentifyer = meta['objectId']
+        try:
+            thumbUrl = videoimage.GetImage(cacheIdentifyer,listIcon)
+        except:
+            thumbUrl = ''
+
+        artistName = meta['albumArtistName']
+        albumName = meta['albumName']
+        title = meta['title']
+        status = meta['status']
+        asin =''
+        if('asin' in meta):
+            asin = meta['asin']
+        if status == "AVAILABLE":
+            if('primeStatus' in meta):
+                addLink(albumName + ' - ' + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
+            else:
+                addLink(albumName + ' - ' + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
+
+    xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+    xbmc.sleep(100)
+
+
+
+def artistTracksPostUnicodePage(url, artist):
+    br = prepareMechanizeBrowser()
+    resp = ''
+    content = ''
+    postDict = {
+        'selectCriteriaList.member.1.attributeName' : 'sortArtistName',
+        'selectCriteriaList.member.1.comparisonType' : 'EQUALS',
+        'selectCriteriaList.member.1.attributeValue' : artist,
+        'selectCriteriaList.member.2.attributeName' : 'status',
+        'selectCriteriaList.member.2.comparisonType' : 'EQUALS',
+        'selectCriteriaList.member.2.attributeValue' : 'AVAILABLE',
+        'selectCriteriaList.member.3.attributeName' : 'trackStatus',
+        'selectCriteriaList.member.3.comparisonType' : 'IS_NULL',
+        'albumArtUrlsSizeList.member.1' : 'FULL',
+        'albumArtUrlsSizeList.member.2' : 'LARGE',
+        'albumArtUrlsRedirects' : 'false',
+        'maxResults' : '100',
+        'Operation' : 'selectTrackMetadata',
+        'distinctOnly' : 'false',
+        'countOnly' : 'false',
+        'caller' : 'getServerData',
+        'selectedColumns.member.1' : '*',
+        'sortCriteriaList.member.1.sortColumn' : 'sortAlbumName',
+        'sortCriteriaList.member.1.sortType' : 'ASC',
+        'sortCriteriaList.member.2.sortColumn' : 'discNum',
+        'sortCriteriaList.member.2.sortType' : 'ASC',
+        'sortCriteriaList.member.3.sortColumn' : 'trackNum',
+        'sortCriteriaList.member.3.sortType' : 'ASC',
+        'ContentType' : 'JSON',
+        'customerInfo.customerId' : addon.getSetting('customerID'),
+        'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
+        'customerInfo.deviceType' : 'A16ZV8BU3SN1N3'
+        }
+    params = urllib.urlencode(postDict)
+
+    try:
+        resp = br.open(url, params)
+        content = unicode(resp.read(), "utf-8")
+    except urllib2.HTTPError as e :
+        log(e.read())
+    return content
+
 
 
 def playlistPostUnicodePage(url, playlistId = ""):
@@ -1303,8 +1431,12 @@ if os.path.exists(cookieFile):
         showPlaylistContent()
     elif mode == 'listOwnAlbums':
         listOwnAlbums()
+    elif mode == 'listOwnArtists':
+        listOwnArtists()
     elif mode == 'showAlbumContent':
         showAlbumContent(g_artist, g_album)
+    elif mode == 'showArtistContent':
+        showArtistContent(g_artist)
     elif mode == 'storePassword':
         storePassword()
     elif mode == 'deletePassword':
