@@ -207,6 +207,7 @@ def listPlaylists(url):
 
 
 def listSongs(url):
+    xbmcplugin.setContent(pluginhandle, "songs")
     content = getUnicodePage(url)
     debug(content)
     content = content.replace("\\","")
@@ -286,6 +287,7 @@ def getSongList(content, with_album_and_artist=False):
 
 
 def listSearchedSongs(url):
+    xbmcplugin.setContent(pluginhandle, "songs")
     content = getUnicodePage(url)
     debug(content)
     content = content.replace("\\","")
@@ -459,6 +461,7 @@ def showPlaylistContent():
     xbmc.sleep(100)
 
 def listOwnPlaylists():
+    xbmcplugin.setContent(pluginhandle, "albums")
     content = playlistPostUnicodePage('https://music.amazon.de/cirrus/')
     spl = content.split("adriveId")
     for i in range(1, len(spl), 1):
@@ -470,10 +473,11 @@ def listOwnPlaylists():
             addDir(listTitle[0], listId[0]+"&nextResultsToken=" ,"showPlaylistContent", "")
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
-        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_playlists)
     xbmc.sleep(100)
 
 def listOwnAlbums():
+    xbmcplugin.setContent(pluginhandle, "albums")
     content = albumPostUnicodePage('https://music.amazon.de/cirrus/', url)
     spl = content.split("albumArtLocator")
     videoimage = ScrapeUtils.VideoImage()
@@ -502,11 +506,12 @@ def listOwnAlbums():
         addDir(translation(30001), "&nextResultsToken=" + next_available[0], "listOwnAlbums", "")
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
-        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_albums)
     xbmc.sleep(100)
 
 
 def listOwnArtists():
+    xbmcplugin.setContent(pluginhandle, "artists")
     content = albumPostUnicodePage('https://music.amazon.de/cirrus/', url, True)
     spl = content.split("albumArtLocator")
     videoimage = ScrapeUtils.VideoImage()
@@ -539,6 +544,7 @@ def listOwnArtists():
 
 
 def showListFollowed():
+    xbmcplugin.setContent(pluginhandle, "albums")
     head = { 'User-Agent' : userAgent,
              'X-Requested-With' : 'XMLHttpRequest',
              'X-Amz-Target' : 'com.amazon.musicplaylist.model.MusicPlaylistService.getFollowedPlaylistsInLibrary',
@@ -574,14 +580,13 @@ def showListFollowed():
         title = item['title']
         desc = item['description']
         icon = item['fourSquareImage']['url']
-
         addDir(title, '', "lookupList&asin=" + asin, icon)
 
     xbmcplugin.endOfDirectory(pluginhandle)
     xbmc.sleep(100)
 
 def showLookupList(asin):
-
+    xbmcplugin.setContent(pluginhandle, "songs")
     head = { 'User-Agent' : userAgent,
              'X-Requested-With' : 'XMLHttpRequest',
              'X-Amz-Target' : 'com.amazon.musicensembleservice.MusicEnsembleService.lookup',
@@ -625,16 +630,17 @@ def showLookupList(asin):
 
             title = item['title']
             dura = item['duration']
-
             icon = item['album']['image']
 
             addLink(artist + ": " + title, "playTrack", asin, icon, "", "", artist, album)
 
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 def showListRecentlyPlayed():
-
+    xbmcplugin.setContent(pluginhandle, "songs")
     head = { 'User-Agent' : userAgent,
              'X-Requested-With' : 'XMLHttpRequest',
              'X-Amz-Target' : 'com.amazon.nimblymusicservice.NimblyMusicService.GetRecentTrackActivity',
@@ -691,6 +697,8 @@ def showListRecentlyPlayed():
             addLink(artistName + ": " + title, "playMP3Track", coid, icon, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
+    if defaultview_songs:
+        xbmc.executebuiltin('Container.SetViewMode(%s)' % defaultview_songs)
     xbmc.sleep(100)
 
 def albumPostUnicodePage(url, nextSite = "", searchArtist = False):
