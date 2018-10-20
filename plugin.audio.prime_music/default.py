@@ -1162,14 +1162,14 @@ def login(content = None, statusOnly = False):
         br.set_handle_gzip(True)
         br.set_handle_robots(False)
         br.addheaders = [('User-Agent', userAgent)]
-        content = br.open(urlMainS+"/gp/dmusic/marketing/CloudPlayerLaunchPage/ref=dm_dp_mcn_cp")
+        content = br.open(urlMainS+"/gp/aw/si.html")
         br.select_form(name="signIn")
         br["email"] = email
         br["password"] = password
-        br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'),
+        br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
                  ('Accept-Encoding', 'gzip, deflate'),
-                 ('Accept-Language', 'de,en-US;q=0.8,en;q=0.6'),
-                 ('Cache-Control', 'max-age=0'),
+                 ('Accept-Language', 'de,en-US;q=0.7,en;q=0.3'),
+                 ('Cache-Control', 'no-cache'),
                  ('Connection', 'keep-alive'),
                  ('Content-Type', 'application/x-www-form-urlencoded'),
                  ('User-Agent', userAgent),
@@ -1201,15 +1201,19 @@ def login(content = None, statusOnly = False):
         if captcha_match:
             log("Captcha required!")
             return "captcha_req"
-        match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(content)
+        br.open("https://music.amazon.de")
+        music_response = br.response().read()
+        music_content = unicode(music_response, "utf-8")
+        music_content = music_content.replace("\\","")
+        match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(music_content)
         if match:
             addon.setSetting('csrf_tsToken', match[0])
             log(match[0])
-        match = re.compile('"csrf_rnd":"(.+?)"', re.DOTALL).findall(content)
+        match = re.compile('"csrf_rnd":"(.+?)"', re.DOTALL).findall(music_content)
         if match:
             addon.setSetting('csrf_rndToken', match[0])
             log(match[0])
-        match = re.compile('"csrf_token":"(.+?)"', re.DOTALL).findall(content)
+        match = re.compile('"csrf_token":"(.+?)"', re.DOTALL).findall(music_content)
         if match:
             addon.setSetting('csrf_Token', match[0])
             log(match[0])
@@ -1219,7 +1223,7 @@ def login(content = None, statusOnly = False):
                 dev_id = cookie.value.replace("-", "")
                 addon.setSetting('req_dev_id', dev_id)
         content = getUnicodePage(urlMainS)
-        customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(content)
+        customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(music_content)
         if customer_match:
             addon.setSetting('customerID', customer_match[0])
             log(customer_match[0])
