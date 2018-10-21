@@ -1,3 +1,6 @@
+0.10.2
+- Fixed login problems as amazon changed its login page.
+- marking tracks that are available only via music subscription in golden letters
 0.10.1
 - Fixed missing Container.Content values + wrong DefaultView settings, thx to sualfred
 0.10.0
