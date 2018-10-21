@@ -359,15 +359,6 @@ def playTrack(asin):
     play_item = setPlayItemInfo(play_item)
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
 
-def playMP3Track(songId):
-    content = trackPostUnicodeGetRestrictedPage('https://music.amazon.de/dmls/', songId)
-    url_list_match = re.compile('urlList":\["(.+?)"',re.DOTALL).findall(content)
-    if url_list_match:
-        mp3_file_string = url_list_match[0]
-        play_item = xbmcgui.ListItem(path=mp3_file_string)
-        play_item = setPlayItemInfo(play_item)
-        xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
-
 
 def listGenres():
     addDir(translation(30020), urlMain+"/s?rh=n%3A5686557031%2Cn%3A180643031%2Cp_n_format_browse-bin%3A180848031&bbn=5686557031&sort=featured-rank&ie=UTF8", 'listAlbums', "")
@@ -442,10 +433,12 @@ def showPlaylistContent():
             cacheIdentifyer = albumAsin if albumAsin else objectId
             icon = videoimage.GetImage(cacheIdentifyer,listIcon)
         if songTitle and status == "AVAILABLE":
-            if('primeStatus' in meta):
+            if (('primeStatus' in meta and meta['primeStatus'] == "PRIME") 
+                    or ('purchased' in meta and meta['purchased'] == "true")
+                    or ('instantImport' in meta and meta['instantImport'] == "true")):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
-            else:
-                addLink(artist+": "+songTitle, "playMP3Track", coid, icon, "", "", artist, album_title)
+            elif ('isMusicSubscription' in meta and meta['isMusicSubscription'] == "true"):
+                addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title, unlimited_color = True)
     next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
     if next_available and next_available[0].isdigit():
         playlist_id = url.split('&')
@@ -685,16 +678,12 @@ def showListRecentlyPlayed():
         if('imageFull' in item):
             icon = item['imageFull']
 
-        trackStatus = item['isUploaded']
         status = True if ((item['isInstantImport'] == 'true') or (item['isMusicSubscription'] == 'true') or (item['isPrime'] == 'true') or (item['isPurchased'] == 'true')) else False
         artistName = item['artistName']
         albumName = item['albumName']
 
-        if(trackStatus == 'false'):
-            if status:
-                addLink(artistName + ": " + title, "playTrack", asin, icon, "", "", artistName, albumName)
-        else:
-            addLink(artistName + ": " + title, "playMP3Track", coid, icon, "", "", artistName, albumName, "")
+        if status:
+            addLink(artistName + ": " + title, "playTrack", asin, icon, "", "", artistName, albumName, unlimited_color = (item['isPrime'] == 'false' and item['isMusicSubscription'] == 'true'))
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
@@ -789,8 +778,6 @@ def showAlbumContent(ArtistName, AlbumName):
         if status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
-            else:
-                addLink(title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
@@ -873,8 +860,6 @@ def showArtistContent(ArtistName ):
         if status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(albumName + ' - ' + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
-            else:
-                addLink(albumName + ' - ' + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName, "")
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
@@ -957,6 +942,7 @@ def playlistPostUnicodePage(url, playlistId = ""):
         'trackColumns.member.18' : 'uploaded',
         'trackColumns.member.19' : 'instantImport',
         'trackColumns.member.20' : 'albumCoverImageFull',
+        'trackColumns.member.21' : 'isMusicSubscription',
         'ContentType' : 'JSON',
         'customerInfo.customerId' : addon.getSetting('customerID'),
         'customerInfo.deviceId' :  addon.getSetting('req_dev_id'),
@@ -1300,15 +1286,22 @@ def addDir(name, url, mode, iconimage, Artist=None, Album=None):
     return ok
 
 
-def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating="", show_artist_and_title = False):
+def addLink(name, mode, asin , iconimage, duration, trackNr="", artist="", album_title="", year="", genre="", rating="", show_artist_and_title = False, unlimited_color = False):
 #    filename = (''.join(c for c in url if c not in '/\\:?"*|<>')).strip()+".jpg"
 #    fanartFile = os.path.join(cacheFolderFanartTMDB, filename)
+    if unlimited_color:
+        link_name = '[COLOR gold]%s[/COLOR]'
+    else:
+        link_name = '%s'
     u = sys.argv[0]+"?mode="+str(mode)+"&asin="+ str(asin)+"&name="+urllib.quote_plus(name.encode("utf8"))+"&thumb="+urllib.quote_plus(iconimage.encode("utf8"))+"&artist="+urllib.quote_plus(artist.encode("utf8"))+"&album="+urllib.quote_plus(album_title.encode("utf8"))
     ok = True
     if show_artist_and_title == True:
-        liz = xbmcgui.ListItem(artist + ": " + name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
+        link_name = link_name % (artist + ": " + name)
+        liz = xbmcgui.ListItem(link_name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
     else:
-        liz = xbmcgui.ListItem(name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
+        link_name = link_name % (name)
+
+        liz = xbmcgui.ListItem(link_name, iconImage="DefaultMusicSongs.png", thumbnailImage=iconimage)
     liz.setInfo(type="music", infoLabels={"title": name, "duration": duration, "year": year, "genre": genre, "rating": rating, "tracknumber": trackNr, "artist": artist, "album": album_title })
 #    liz.setProperty("fanart_image", fanartFile)
     liz.setProperty('IsPlayable', 'true')
@@ -1427,8 +1420,6 @@ if os.path.exists(cookieFile):
         listGenres()
     elif mode == 'playTrack':
         playTrack(asin)
-    elif mode == 'playMP3Track':
-        playMP3Track(asin)
     elif mode == 'search':
         search(url)
     elif mode == 'login':
