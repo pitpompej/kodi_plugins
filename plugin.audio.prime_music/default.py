@@ -1209,7 +1209,7 @@ def login(content = None, statusOnly = False):
                 dev_id = cookie.value.replace("-", "")
                 addon.setSetting('req_dev_id', dev_id)
         content = getUnicodePage(urlMainS)
-        customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(music_content)
+        customer_match = re.compile('"customerId":"(.+?)"', re.DOTALL).findall(music_content)
         if customer_match:
             addon.setSetting('customerID', customer_match[0])
             log(customer_match[0])
