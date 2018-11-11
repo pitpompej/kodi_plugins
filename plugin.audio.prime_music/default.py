@@ -387,6 +387,11 @@ def listGenres():
 def deleteCookies():
     if os.path.exists(cookieFile):
         os.remove(cookieFile)
+    addon.setSetting('csrf_tsToken', "")
+    addon.setSetting('csrf_rndToken', "")
+    addon.setSetting('csrf_Token', "")
+    addon.setSetting('req_dev_id', "")
+    addon.setSetting('customerID', "")
 
 
 def deleteCache():
