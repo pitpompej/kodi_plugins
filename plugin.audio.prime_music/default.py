@@ -1124,10 +1124,10 @@ def login(content = None, statusOnly = False):
     is_prime_expression = "config.isPrimeMember',true"
     if content is None:
         content = getUnicodePage(urlMainS)
-    signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
+    signed_in_expression = "config.signInOverride', false"
     if is_prime_expression in content: #
         return "prime"
-    elif signoutmatch and signoutmatch[0].strip() != "null":
+    elif signed_in_expression in content:
         return "noprime"
     else:
         if statusOnly:
@@ -1214,14 +1214,13 @@ def login(content = None, statusOnly = False):
                 dev_id = cookie.value.replace("-", "")
                 addon.setSetting('req_dev_id', dev_id)
         content = getUnicodePage(urlMainS)
-        customer_match = re.compile('"customerID":"(.+?)"', re.DOTALL).findall(music_content)
+        customer_match = re.compile('"customerId":"(.+?)"', re.DOTALL).findall(music_content)
         if customer_match:
             addon.setSetting('customerID', customer_match[0])
             log(customer_match[0])
-        signoutmatch = re.compile("declare\('config.signOutText',(.+?)\);", re.DOTALL).findall(content)
         if is_prime_expression in content: #
             return "prime"
-        elif signoutmatch[0].strip() != "null":
+        elif signed_in_expression in content:
             return "noprime"
         else:
             return "none"
