@@ -1165,24 +1165,37 @@ def doLogin():
     br.submit()
     resp = br.response().read()
     content = unicode(resp, "utf-8")
-    while 'auth-mfa-form' in content :
+    while 'action="verify"' in content :
         soup = parseHTML(content)
-        log('MFA form')
-        if 'auth-mfa-form' in content:
-            msg = soup.find('form', attrs={'id': 'auth-mfa-form'})
-            msgtxt = msg.p.renderContents().strip()
+        if 'name="claimspicker"' in content:
+            # step 1
+            log('MFA form step 1')
+            form = soup.find('form', attrs={'name': 'claimspicker'})
+            msgheading = form.find('h1').renderContents().strip()
+            msgtxt = form.find('div', attrs={'class': 'a-row'}).renderContents().strip()
+            if xbmcgui.Dialog().yesno(msgheading, msgtxt):
+                br.select_form(nr=0)
+            else:
+                return "none"
+        elif 'name="code"' in content:
+            # step 2
+            log('MFA form step 2')
+            form = soup.find('form', attrs={'class': 'cvf-widget-form fwcim-form a-spacing-none'})
+            msgtxt = form.find('div', attrs={'class': 'a-row a-spacing-none'}).getText().strip()
             kb = xbmc.Keyboard('', msgtxt)
             kb.doModal()
             if kb.isConfirmed() and kb.getText():
-                xbmc.executebuiltin('ActivateWindow(busydialog)')
                 br.select_form(nr=0)
-                br['otpCode'] = kb.getText()
+                br['code'] = kb.getText()
             else:
                 return "none"
+        else:
+            # Unknown form
+            return "none"
+        xbmc.executebuiltin('ActivateWindow(busydialog)')
         br.submit()
         resp = br.response().read()
         content = unicode(resp, "utf-8")
-        soup = parseHTML(content)
         xbmc.executebuiltin('Dialog.Close(busydialog)')
     content = content.replace("\\","")
     captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
