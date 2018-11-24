@@ -10,6 +10,7 @@
         <setting id="email" type="text" visible="false" label="email" default=""/>
         <setting id="password" type="text" visible="false" label="password" default=""/>
         <setting id="req_dev_id" type="text" visible="false" label="req_dev_id" default=""/>
+        <setting id="access" type="text" visible="false" label="access" default=""/>
     </category>
     <category label="30121">
         <setting id="albumDefaultView" type="text" label="30119"/>

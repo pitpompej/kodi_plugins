@@ -36,8 +36,9 @@
   <string id="30039">Soundtracks</string>
   <string id="30040">Weltmusik</string>
   <string id="30081">Bitte die Seitenversion (US/UK/DE) wählen...</string>
-  <string id="30082">Du bist nicht eingeloggt oder hast keinen Amazon Prime Account zum einloggen verwendet</string>
+  <string id="30082">Du bist nicht eingeloggt</string>
   <string id="30083">Captcha Abfrage, bitte IP ändern oder später erneut versuchen</string>
+  <string id="30084">Du hast keinen Amazon Prime oder Music Unlimited Account zum einloggen verwendet</string>
   <string id="30090">Amazon Prime Music - Email eingeben:</string>
   <string id="30091">Amazon Prime Music - Password eingeben:</string>
   <string id="30101">Email</string>
