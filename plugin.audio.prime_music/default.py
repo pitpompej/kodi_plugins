@@ -1049,9 +1049,15 @@ def search(type):
         search_string = urllib.quote_plus(search_string.encode("utf8"))
         if siteVersion=="de":
             if type=="albums":
-                listAlbums(urlMain+"/s?rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
+                if addon.getSetting('access') == 'unlimited':
+                    listAlbums(urlMain+"/s?rh=n%3A77195031%2Ck%2Cp_n_music_subscription%3A10212696031%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
+                else:
+                    listAlbums(urlMain+"/s?rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
             elif type=="songs":
-                listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180849031&bbn=5686557031&keywords="+search_string+"&ie=UTF8")
+                if addon.getSetting('access') == 'unlimited':
+				    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A77195031%2Ck%2Cp_n_format_browse-bin%3A180849031%2Cp_n_music_subscription%3A10212696031&keywords="+search_string+"&ie=UTF8")
+                else:
+                    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180849031&bbn=5686557031&keywords="+search_string+"&ie=UTF8")
 #        elif siteVersion=="com":
 #            if type=="movies":
 #                listMovies(urlMain+"/mn/search/ajax/?_encoding=UTF8&url=node%3D7613704011&field-keywords="+search_string)
