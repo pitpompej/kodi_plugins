@@ -1055,7 +1055,7 @@ def search(type):
                     listAlbums(urlMain+"/s?rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
             elif type=="songs":
                 if addon.getSetting('access') == 'unlimited':
-				    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A77195031%2Ck%2Cp_n_format_browse-bin%3A180849031%2Cp_n_music_subscription%3A10212696031&keywords="+search_string+"&ie=UTF8")
+                    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A77195031%2Ck%2Cp_n_format_browse-bin%3A180849031%2Cp_n_music_subscription%3A10212696031&keywords="+search_string+"&ie=UTF8")
                 else:
                     listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180849031&bbn=5686557031&keywords="+search_string+"&ie=UTF8")
 #        elif siteVersion=="com":
@@ -1171,7 +1171,7 @@ def doLogin():
     br.submit()
     resp = br.response().read()
     content = unicode(resp, "utf-8")
-    while 'action="verify"' in content :
+    while 'action="verify"' in content or 'id="auth-mfa-remember-device' in content :
         soup = parseHTML(content)
         if 'name="claimspicker"' in content:
             # step 1
@@ -1193,6 +1193,17 @@ def doLogin():
             if kb.isConfirmed() and kb.getText():
                 br.select_form(nr=0)
                 br['code'] = kb.getText()
+            else:
+                return "none"
+        elif 'auth-mfa-form' in content:
+            msg = soup.find('form', attrs={'id': 'auth-mfa-form'})
+            msgtxt = msg.p.renderContents().strip()
+            kb = xbmc.Keyboard('', msgtxt)
+            kb.doModal()
+            if kb.isConfirmed() and kb.getText():
+                xbmc.executebuiltin('ActivateWindow(busydialog)')
+                br.select_form(nr=0)
+                br['otpCode'] = kb.getText()
             else:
                 return "none"
         else:
