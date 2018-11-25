@@ -78,7 +78,7 @@ if addon.getSetting('ssl_verif') == 'true' and hasattr(ssl, '_create_unverified_
 
 def index():
     loginResult = login()
-    if loginResult=="prime":
+    if loginResult=="success":
         addDir(translation(30002), urlMain+"/s/ref=dmm_pr_bbx_album?ie=UTF8&bbn=5686557031&rh=i%3Adigital-music-album", 'listAlbums', "")
         addDir(translation(30003), urlMain+"/s/ref=s9_rbpl_bw_srch?__mk_de_DE=%C5M%C5Z%D5%D1&rh=i%3Adigital-music-playlist%2Cn%3A5686557031%2Cp_n_format_browse-bin%3A5686558031&sort=featured-rank", 'listAlbums', "")
         addDir(translation(30004), "", 'listGenres', "")
@@ -93,6 +93,8 @@ def index():
         xbmcplugin.endOfDirectory(pluginhandle)
     elif loginResult == "captcha_req":
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30083)+',10000,'+icon+')').encode("utf-8"))
+    elif loginResult == "noprime":
+        xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30084)+',10000,'+icon+')').encode("utf-8"))
     else:
         xbmc.executebuiltin(unicode('XBMC.Notification(Info:,'+translation(30082)+',10000,'+icon+')').encode("utf-8"))
 
@@ -392,6 +394,7 @@ def deleteCookies():
     addon.setSetting('csrf_Token', "")
     addon.setSetting('req_dev_id', "")
     addon.setSetting('customerID', "")
+    addon.setSetting('access', "")
 
 
 def deleteCache():
@@ -996,8 +999,7 @@ def trackPostUnicodeGetHLSPage(url, asin, isRetry = False):
             content = unicode(req.read(), "utf-8")
     except urllib2.HTTPError as e:
         log(unicode(e.read(), "utf-8"))
-        deleteCookies()
-        login("dummy")
+        doLogin()
         if not isRetry:
             return trackPostUnicodeGetHLSPage(url, asin, True)
 
@@ -1047,9 +1049,15 @@ def search(type):
         search_string = urllib.quote_plus(search_string.encode("utf8"))
         if siteVersion=="de":
             if type=="albums":
-                listAlbums(urlMain+"/s?rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
+                if addon.getSetting('access') == 'unlimited':
+                    listAlbums(urlMain+"/s?rh=n%3A77195031%2Ck%2Cp_n_music_subscription%3A10212696031%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
+                else:
+                    listAlbums(urlMain+"/s?rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180848031&keywords="+search_string+"&ie=UTF8")
             elif type=="songs":
-                listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180849031&bbn=5686557031&keywords="+search_string+"&ie=UTF8")
+                if addon.getSetting('access') == 'unlimited':
+				    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A77195031%2Ck%2Cp_n_format_browse-bin%3A180849031%2Cp_n_music_subscription%3A10212696031&keywords="+search_string+"&ie=UTF8")
+                else:
+                    listSearchedSongs(urlMain+"/s/ref=sr_nr_p_n_format_browse-bi_2?fst=as%3Aoff&rh=n%3A5686557031%2Ck%2Cp_n_format_browse-bin%3A180849031&bbn=5686557031&keywords="+search_string+"&ie=UTF8")
 #        elif siteVersion=="com":
 #            if type=="movies":
 #                listMovies(urlMain+"/mn/search/ajax/?_encoding=UTF8&url=node%3D7613704011&field-keywords="+search_string)
@@ -1120,82 +1128,108 @@ def deletePassword():
     writeConfig('foo_bar', '')
 
 
-def login(content = None, statusOnly = False):
-    is_prime_expression = "config.isPrimeMember',true"
-    if content is None:
-        content = getUnicodePage(urlMainS)
-    signed_in_expression = "config.signInOverride', false"
-    if is_prime_expression in content: #
-        return "prime"
-    elif signed_in_expression in content:
-        return "noprime"
+def login():
+    status = checkLoginStatus()
+    if status == "none":
+        return doLogin()
     else:
-        if statusOnly:
-            return "none"
-        deleteCookies()
-        content = ""
+        return status
 
-        email = addon.getSetting('email')
-        pw = decode(getConfig('foo_bar'))
-        if pw:
-            password = unicode(pw, "utf-8")
+
+def doLogin():
+    deleteCookies()
+    email = addon.getSetting('email')
+    pw = decode(getConfig('foo_bar'))
+    if pw:
+        password = unicode(pw, "utf-8")
+    else:
+        password = pw
+    if not email:
+        keyboard = xbmc.Keyboard('', translation(30090))
+        keyboard.doModal()
+        if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
+            email = unicode(keyboard.getText(), "utf-8")
+    if not password:
+        password = unicode(requestPassword(), "utf-8")
+    br = mechanize.Browser()
+    br.set_cookiejar(cj)
+    br.set_handle_gzip(True)
+    br.set_handle_robots(False)
+    br.addheaders = [('User-Agent', userAgent)]
+    content = br.open(urlMainS+"/gp/aw/si.html")
+    br.select_form(name="signIn")
+    br["email"] = email
+    br["password"] = password
+    br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
+             ('Accept-Encoding', 'gzip, deflate'),
+             ('Accept-Language', 'de,en-US;q=0.7,en;q=0.3'),
+             ('Cache-Control', 'no-cache'),
+             ('Connection', 'keep-alive'),
+             ('Content-Type', 'application/x-www-form-urlencoded'),
+             ('User-Agent', userAgent),
+             ('Upgrade-Insecure-Requests', '1')]
+    br.submit()
+    resp = br.response().read()
+    content = unicode(resp, "utf-8")
+    while 'action="verify"' in content :
+        soup = parseHTML(content)
+        if 'name="claimspicker"' in content:
+            # step 1
+            log('MFA form step 1')
+            form = soup.find('form', attrs={'name': 'claimspicker'})
+            msgheading = form.find('h1').renderContents().strip()
+            msgtxt = form.find('div', attrs={'class': 'a-row'}).renderContents().strip()
+            if xbmcgui.Dialog().yesno(msgheading, msgtxt):
+                br.select_form(nr=0)
+            else:
+                return "none"
+        elif 'name="code"' in content:
+            # step 2
+            log('MFA form step 2')
+            form = soup.find('form', attrs={'class': 'cvf-widget-form fwcim-form a-spacing-none'})
+            msgtxt = form.find('div', attrs={'class': 'a-row a-spacing-none'}).getText().strip()
+            kb = xbmc.Keyboard('', msgtxt)
+            kb.doModal()
+            if kb.isConfirmed() and kb.getText():
+                br.select_form(nr=0)
+                br['code'] = kb.getText()
+            else:
+                return "none"
         else:
-            password = pw
-        if not email:
-            keyboard = xbmc.Keyboard('', translation(30090))
-            keyboard.doModal()
-            if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
-                email = unicode(keyboard.getText(), "utf-8")
-        if not password:
-            password = unicode(requestPassword(), "utf-8")
-        br = mechanize.Browser()
-        br.set_cookiejar(cj)
-        br.set_handle_gzip(True)
-        br.set_handle_robots(False)
-        br.addheaders = [('User-Agent', userAgent)]
-        content = br.open(urlMainS+"/gp/aw/si.html")
-        br.select_form(name="signIn")
-        br["email"] = email
-        br["password"] = password
-        br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
-                 ('Accept-Encoding', 'gzip, deflate'),
-                 ('Accept-Language', 'de,en-US;q=0.7,en;q=0.3'),
-                 ('Cache-Control', 'no-cache'),
-                 ('Connection', 'keep-alive'),
-                 ('Content-Type', 'application/x-www-form-urlencoded'),
-                 ('User-Agent', userAgent),
-                 ('Upgrade-Insecure-Requests', '1')]
+            # Unknown form
+            return "none"
+        xbmc.executebuiltin('ActivateWindow(busydialog)')
         br.submit()
         resp = br.response().read()
         content = unicode(resp, "utf-8")
-        while 'auth-mfa-form' in content :
-            soup = parseHTML(content)
-            log('MFA form')
-            if 'auth-mfa-form' in content:
-                msg = soup.find('form', attrs={'id': 'auth-mfa-form'})
-                msgtxt = msg.p.renderContents().strip()
-                kb = xbmc.Keyboard('', msgtxt)
-                kb.doModal()
-                if kb.isConfirmed() and kb.getText():
-                    xbmc.executebuiltin('ActivateWindow(busydialog)')
-                    br.select_form(nr=0)
-                    br['otpCode'] = kb.getText()
-                else:
-                    return "none"
-            br.submit()
-            resp = br.response().read()
-            content = unicode(resp, "utf-8")
-            soup = parseHTML(content)
-            xbmc.executebuiltin('Dialog.Close(busydialog)')
-        content = content.replace("\\","")
-        captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
-        if captcha_match:
-            log("Captcha required!")
-            return "captcha_req"
-        br.open("https://music.amazon.de")
-        music_response = br.response().read()
-        music_content = unicode(music_response, "utf-8")
-        music_content = music_content.replace("\\","")
+        xbmc.executebuiltin('Dialog.Close(busydialog)')
+    content = content.replace("\\","")
+    captcha_match = re.compile('ap_captcha_title', re.DOTALL).findall(content)
+    if captcha_match:
+        log("Captcha required!")
+        return "captcha_req"
+    return checkLoginStatus(True)
+
+
+def checkLoginStatus(updateSettings = False):
+    signed_out_expression = '"customerId":0'
+    is_unlimited_expression = '"hawkfireAccess":1'
+    is_prime_expression = '"primeAccess":1'
+    access = "none"
+    music_content = getUnicodePage("https://music.amazon.de")
+    music_content = music_content.replace("\\","")
+    if signed_out_expression in music_content:
+        return "none"
+    elif is_unlimited_expression in music_content:
+        access = "unlimited"
+    elif is_prime_expression in music_content:
+        access = "prime"
+    else:
+        return "noprime"
+
+    if updateSettings:
+        addon.setSetting('access', access)
+        log('access: ' + access)
         match = re.compile('"csrf_ts":"(.+?)"', re.DOTALL).findall(music_content)
         if match:
             addon.setSetting('csrf_tsToken', match[0])
@@ -1213,17 +1247,11 @@ def login(content = None, statusOnly = False):
             if cookie.name == "ubid-acbde":
                 dev_id = cookie.value.replace("-", "")
                 addon.setSetting('req_dev_id', dev_id)
-        content = getUnicodePage(urlMainS)
         customer_match = re.compile('"customerId":"(.+?)"', re.DOTALL).findall(music_content)
         if customer_match:
             addon.setSetting('customerID', customer_match[0])
             log(customer_match[0])
-        if is_prime_expression in content: #
-            return "prime"
-        elif signed_in_expression in content:
-            return "noprime"
-        else:
-            return "none"
+    return "success"
 
 
 def parseHTML(response):
