@@ -1,3 +1,7 @@
+0.10.4
+- login code refactoring
+- handle login verification via mail
+- for unlimited account use according search, thanks again to sharpherd for all these changes
 0.10.3
 - finally fixed login problems, many thanks to sharpherd for finding the bug and the solution
 0.10.2
