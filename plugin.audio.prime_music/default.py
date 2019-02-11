@@ -362,6 +362,15 @@ def playTrack(asin):
     xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
 
 
+def playMP3Track(songId):
+    content = trackPostUnicodeGetRestrictedPage('https://music.amazon.de/dmls/', songId)
+    url_list_match = re.compile('urlList":\["(.+?)"',re.DOTALL).findall(content)
+    if url_list_match:
+        mp3_file_string = url_list_match[0]
+        play_item = xbmcgui.ListItem(path=mp3_file_string)
+        play_item = setPlayItemInfo(play_item)
+        xbmcplugin.setResolvedUrl(pluginhandle, True, listitem=play_item)
+
 def listGenres():
     addDir(translation(30020), urlMain+"/s?rh=n%3A5686557031%2Cn%3A180643031%2Cp_n_format_browse-bin%3A180848031&bbn=5686557031&sort=featured-rank&ie=UTF8", 'listAlbums', "")
     addDir(translation(30021), urlMain+"/s?rh=n%3A5686557031%2Cn%3A180530031%2Cp_n_format_browse-bin%3A180848031&bbn=5686557031&sort=featured-rank&ie=UTF8", 'listAlbums', "")
@@ -441,12 +450,13 @@ def showPlaylistContent():
             cacheIdentifyer = albumAsin if albumAsin else objectId
             icon = videoimage.GetImage(cacheIdentifyer,listIcon)
         if songTitle and status == "AVAILABLE":
-            if (('primeStatus' in meta and meta['primeStatus'] == "PRIME") 
-                    or ('purchased' in meta and meta['purchased'] == "true")
-                    or ('instantImport' in meta and meta['instantImport'] == "true")):
+            if ('primeStatus' in meta and meta['primeStatus'] == "PRIME"):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title)
             elif ('isMusicSubscription' in meta and meta['isMusicSubscription'] == "true"):
                 addLink(artist+": "+songTitle, "playTrack", asin, icon, "", "", artist, album_title, unlimited_color = True)
+            elif (('purchased' in meta and meta['purchased'] == "true")
+                    or ('instantImport' in meta and meta['instantImport'] == "true")):
+                addLink(artist+": "+songTitle, "playMP3Track", coid, icon, "", "", artist, album_title)
     next_available=re.compile('"nextResultsToken":"(.+?)"').findall(content)
     if next_available and next_available[0].isdigit():
         playlist_id = url.split('&')
@@ -786,6 +796,11 @@ def showAlbumContent(ArtistName, AlbumName):
         if status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
+            elif ('isMusicSubscription' in meta and meta['isMusicSubscription'] == "true"):
+                addLink(title, "playTrack", asin, thumbUrl, "", "", artistName, albumName, unlimited_color = True)
+            elif (('purchased' in meta and meta['purchased'] == "true")
+                    or ('instantImport' in meta and meta['instantImport'] == "true")):
+                addLink(title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName)
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
@@ -868,6 +883,11 @@ def showArtistContent(ArtistName ):
         if status == "AVAILABLE":
             if('primeStatus' in meta):
                 addLink(albumName + ' - ' + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName)
+            elif ('isMusicSubscription' in meta and meta['isMusicSubscription'] == "true"):
+                addLink(albumName + ' - ' + title, "playTrack", asin, thumbUrl, "", "", artistName, albumName, unlimited_color = True)
+            elif (('purchased' in meta and meta['purchased'] == "true")
+                    or ('instantImport' in meta and meta['instantImport'] == "true")):
+                addLink(albumName + ' - ' + title, "playMP3Track", coid, thumbUrl, "", "", artistName, albumName)
 
     xbmcplugin.endOfDirectory(pluginhandle)
     if defaultview_songs:
@@ -1463,6 +1483,8 @@ if os.path.exists(cookieFile):
         listGenres()
     elif mode == 'playTrack':
         playTrack(asin)
+    elif mode == 'playMP3Track':
+        playMP3Track(asin)
     elif mode == 'search':
         search(url)
     elif mode == 'login':
