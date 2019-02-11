@@ -1150,7 +1150,10 @@ def doLogin():
         if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
             email = unicode(keyboard.getText(), "utf-8")
     if not password:
-        password = unicode(requestPassword(), "utf-8")
+        pw = requestPassword()
+        if not pw:
+            return 'none'
+        password = unicode(pw, "utf-8")
     br = mechanize.Browser()
     br.set_cookiejar(cj)
     br.set_handle_gzip(True)
