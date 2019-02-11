@@ -1150,7 +1150,10 @@ def doLogin():
         if keyboard.isConfirmed() and unicode(keyboard.getText(), "utf-8"):
             email = unicode(keyboard.getText(), "utf-8")
     if not password:
-        password = unicode(requestPassword(), "utf-8")
+        pw = requestPassword()
+        if not pw:
+            return 'none'
+        password = unicode(pw, "utf-8")
     br = mechanize.Browser()
     br.set_cookiejar(cj)
     br.set_handle_gzip(True)
@@ -1158,7 +1161,8 @@ def doLogin():
     br.addheaders = [('User-Agent', userAgent)]
     content = br.open(urlMainS+"/gp/aw/si.html")
     br.select_form(name="signIn")
-    br["email"] = email
+    if not br.find_control("email").readonly:
+        br["email"] = email
     br["password"] = password
     br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
              ('Accept-Encoding', 'gzip, deflate'),
@@ -1223,13 +1227,14 @@ def doLogin():
 
 
 def checkLoginStatus(updateSettings = False):
+    sign_in_form_expression = 'name="signIn"'
     signed_out_expression = '"customerId":0'
     is_unlimited_expression = '"hawkfireAccess":1'
     is_prime_expression = '"primeAccess":1'
     access = "none"
     music_content = getUnicodePage("https://music.amazon.de")
     music_content = music_content.replace("\\","")
-    if signed_out_expression in music_content:
+    if sign_in_form_expression in music_content or signed_out_expression in music_content:
         return "none"
     elif is_unlimited_expression in music_content:
         access = "unlimited"
