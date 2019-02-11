@@ -1223,13 +1223,14 @@ def doLogin():
 
 
 def checkLoginStatus(updateSettings = False):
+    sign_in_form_expression = 'name="signIn"'
     signed_out_expression = '"customerId":0'
     is_unlimited_expression = '"hawkfireAccess":1'
     is_prime_expression = '"primeAccess":1'
     access = "none"
     music_content = getUnicodePage("https://music.amazon.de")
     music_content = music_content.replace("\\","")
-    if signed_out_expression in music_content:
+    if sign_in_form_expression in music_content or signed_out_expression in music_content:
         return "none"
     elif is_unlimited_expression in music_content:
         access = "unlimited"
