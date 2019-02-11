@@ -1,3 +1,7 @@
+0.10.5
+- several login fixes according amazons new login page
+- avoid error when user cancels the password dialog
+- reenable playback of purchased tracks, for all these three fixes many thx to sharpherd for his great work
 0.10.4
 - login code refactoring
 - handle login verification via mail
