@@ -1158,7 +1158,8 @@ def doLogin():
     br.addheaders = [('User-Agent', userAgent)]
     content = br.open(urlMainS+"/gp/aw/si.html")
     br.select_form(name="signIn")
-    br["email"] = email
+    if not br.find_control("email").readonly:
+        br["email"] = email
     br["password"] = password
     br.addheaders = [('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'),
              ('Accept-Encoding', 'gzip, deflate'),
