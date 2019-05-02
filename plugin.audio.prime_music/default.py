@@ -106,48 +106,40 @@ def listAlbums(url):
     content = content.replace("\\","")
     if 'id="catCorResults"' in content:
         content = content[:content.find('id="catCorResults"')]
-    args = urlparse.parse_qs(url[1:])
-    page = args.get('page', None)
-    if page is not None:
-        if int(page[0]) > 1:
-            content = content[content.find('breadcrumb.breadcrumbSearch'):]
     if siteVersion=="de":
         if 'nstimmung mit Produkten, wir haben daher die Kategorie' in content:
             xbmcplugin.endOfDirectory(pluginhandle)
             xbmc.sleep(100)
             return
-    spl = content.split('id="result_')
+    spl = content.split(' s-result-item ')
     videoimage = ScrapeUtils.VideoImage()
     addDir(translation(30006), "", 'index', "")
     for i in range(1, len(spl), 1):
         entry = spl[i]
-        match = re.compile('asin="(.+?)"', re.DOTALL).findall(entry)
-        if match :
-            match1 = re.compile('title="(.+?)"', re.DOTALL).findall(entry)
-            title = ""
-            if match1:
-                title = match1[0]
-            else:
-                continue
-            title = cleanInput(title)
-            artist = ""
-            match1 = re.compile('von </span><span class="a-size-small a-color-secondary"><.+?>(.+?)<', re.DOTALL).findall(entry)
-            if match1:
-                artist = match1[0]
-                artist += ": "
-            year = ""
-            match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
-            thumbUrl = ""
-            if match:
-                thumbUrl = videoimage.ImageFile(match[0])
-            albumUrl = ""
-            match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
-            if match:
-                albumUrl = match[0]
-            else:
-                continue
-            addDir(artist + title, albumUrl, "listSongs", thumbUrl)
-    match_nextpage = re.compile('ass="pagnNext".*?href="(.+?)">', re.DOTALL).findall(content)
+        match1 = re.compile('<span class="a-size-medium a-color-base a-text-normal">(.+?)<', re.DOTALL).findall(entry)
+        title = ""
+        if match1:
+            title = cleanInput(match1[0])
+        else:
+            continue
+        artist = ""
+        match1 = re.compile('von </span><span class="a-size-base">(.+?)<', re.DOTALL).findall(entry)
+        if match1:
+            artist = cleanInput(match1[0])
+            artist += ": "
+        year = ""
+        match = re.compile('src="(.+?)"', re.DOTALL).findall(entry)
+        thumbUrl = ""
+        if match:
+            thumbUrl = videoimage.ImageFile(match[0])
+        albumUrl = ""
+        match = re.compile('href="(.+?)"', re.DOTALL).findall(entry)
+        if match:
+            albumUrl = urlMain + match[0]
+        else:
+            continue
+        addDir(artist + title, albumUrl, "listSongs", thumbUrl)
+    match_nextpage = re.compile('<li class="a-last">.*?href="(.+?)">', re.DOTALL).findall(content)
     if match_nextpage:
         addDir(translation(30001), urlMain + match_nextpage[0].replace("&amp;","&"), "listAlbums", "")
     xbmcplugin.endOfDirectory(pluginhandle)
