@@ -1241,8 +1241,8 @@ def doLogin():
 def checkLoginStatus(updateSettings = False):
     sign_in_form_expression = 'name="signIn"'
     signed_out_expression = '"customerId":0'
-    is_unlimited_expression = '"hawkfireAccess":1'
-    is_prime_expression = '"primeAccess":1'
+    is_unlimited_expression = '"hawkfireAccess":true'
+    is_prime_expression = '"primeAccess":true'
     access = "none"
     music_content = getUnicodePage("https://music.amazon.de")
     music_content = music_content.replace("\\","")
