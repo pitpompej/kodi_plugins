@@ -1240,7 +1240,7 @@ def doLogin():
 
 def checkLoginStatus(updateSettings = False):
     sign_in_form_expression = 'name="signIn"'
-    signed_out_expression = '"customerId":0'
+    signed_out_expression = '"customerId":""'
     is_unlimited_expression = '"hawkfireAccess":true'
     is_prime_expression = '"primeAccess":true'
     access = "none"
