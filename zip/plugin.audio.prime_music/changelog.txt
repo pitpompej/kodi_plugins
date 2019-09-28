@@ -1,3 +1,5 @@
+0.10.8
+- fix the amazon login problem, using old amazon variable style and new one
 0.10.7
 - bugfix to match amazons code changes
 0.10.6
